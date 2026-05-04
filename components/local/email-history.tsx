@@ -6,6 +6,11 @@ import {
   getSubscriberReports,
   type DateCard,
 } from "@/server-actions/get-subscriber-reports";
+import {
+  Dialog,
+  DialogContent,
+  DialogClose,
+} from "@/components/ui/dialog";
 
 const PAGE_SIZE = 10;
 
@@ -42,6 +47,7 @@ export function EmailHistory() {
   const [done, setDone] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [activeUrl, setActiveUrl] = useState<string | null>(null);
 
   const loadMore = useCallback(async () => {
     if (inflightRef.current || done) return;
@@ -87,6 +93,24 @@ export function EmailHistory() {
 
   return (
     <div className="w-full">
+      <Dialog open={activeUrl !== null} onOpenChange={(open) => { if (!open) setActiveUrl(null); }}>
+        <DialogContent className="max-w-none w-screen h-screen p-0 flex flex-col gap-0 rounded-none">
+          <div className="flex items-center justify-end px-4 py-2 border-b border-gray-200 bg-white shrink-0">
+            <DialogClose className="text-gray-500 hover:text-gray-900 text-sm font-medium">
+              Close ✕
+            </DialogClose>
+          </div>
+          {activeUrl && (
+            <iframe
+              src={activeUrl}
+              className="flex-1 w-full border-0"
+              title="Report"
+              sandbox="allow-same-origin allow-popups"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
       <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">
         Past reports
       </p>
@@ -103,7 +127,7 @@ export function EmailHistory() {
         ) : (
           <div className="flex flex-col gap-3">
             {cards.map((card) => (
-              <DateCardView key={card.date} card={card} />
+              <DateCardView key={card.date} card={card} onView={setActiveUrl} />
             ))}
 
             {!done && (
@@ -137,7 +161,7 @@ export function EmailHistory() {
   );
 }
 
-function DateCardView({ card }: { card: DateCard }) {
+function DateCardView({ card, onView }: { card: DateCard; onView: (url: string) => void }) {
   return (
     <div className="border border-gray-200 rounded-xl bg-white overflow-hidden">
       <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
@@ -149,15 +173,13 @@ function DateCardView({ card }: { card: DateCard }) {
         {card.reports.map((r) => (
           <li key={r.topic} className="px-4 py-2.5 flex items-center justify-between gap-3">
             <span className="text-[14px] text-gray-700 truncate">{r.topic}</span>
-            <a
-              href={r.renderUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
+              onClick={() => onView(r.renderUrl)}
               className="inline-flex items-center gap-1 text-[12.5px] font-bold text-brand hover:text-brand-hover shrink-0"
             >
               View
               <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
-            </a>
+            </button>
           </li>
         ))}
       </ul>

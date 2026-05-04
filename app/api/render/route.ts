@@ -54,7 +54,10 @@ export async function GET(req: NextRequest) {
   }
 
   const raw = await upstream.text();
-  let html = fileExtension === "md" ? await marked(raw) : raw;
+  const sanitized = raw
+    .replace(/\{\{TOPIC_SECTIONS\}\}/g, '<p style="color:#888;text-align:center;padding:2rem;">Report content is being generated — check back shortly.</p>')
+    .replace(/\{\{UNSUBSCRIBE_URL\}\}/g, "#");
+  let html = fileExtension === "md" ? await marked(sanitized) : sanitized;
 
   if (fileExtension === "md") {
     const ctaHtml = `
