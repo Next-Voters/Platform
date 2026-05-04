@@ -104,7 +104,7 @@ export async function getSubscriberReports(
       const offset = offsets[slug] ?? 0;
       try {
         const { data, error } = await storage.storage
-          .from("report")
+          .from("reports")
           .list(`${cSlug}/${slug}/${langCode}`, {
             limit: fetchPerTopic,
             offset,
@@ -177,7 +177,7 @@ export async function getSubscriberReports(
         const path = `${cSlug}/${topicSlug(topic)}/${langCode}/${date}.html`;
         return {
           topic,
-          renderUrl: `/api/render?bucket=report&path=${encodeURIComponent(path)}`,
+          renderUrl: `/api/render?bucket=reports&path=${encodeURIComponent(path)}`,
         };
       }),
     };
