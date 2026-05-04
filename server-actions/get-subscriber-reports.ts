@@ -104,8 +104,8 @@ export async function getSubscriberReports(
       const offset = offsets[slug] ?? 0;
       try {
         const { data, error } = await storage.storage
-          .from("reports")
-          .list(`public/${cSlug}/${slug}/${langCode}`, {
+          .from("report")
+          .list(`${cSlug}/${slug}/${langCode}`, {
             limit: fetchPerTopic,
             offset,
             sortBy: { column: "name", order: "desc" },
@@ -174,10 +174,10 @@ export async function getSubscriberReports(
     return {
       date,
       reports: sortedTopics.map((topic) => {
-        const path = `public/${cSlug}/${topicSlug(topic)}/${langCode}/${date}.html`;
+        const path = `${cSlug}/${topicSlug(topic)}/${langCode}/${date}.html`;
         return {
           topic,
-          renderUrl: `/api/render?bucket=reports&path=${encodeURIComponent(path)}`,
+          renderUrl: `/api/render?bucket=report&path=${encodeURIComponent(path)}`,
         };
       }),
     };
