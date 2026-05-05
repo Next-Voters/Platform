@@ -1,16 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowUpRight, Mail } from "lucide-react";
+import { ArrowUpRight, Mail, X } from "lucide-react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import {
   getSubscriberReports,
   type DateCard,
 } from "@/server-actions/get-subscriber-reports";
-import {
-  Dialog,
-  DialogContent,
-  DialogClose,
-} from "@/components/ui/dialog";
 
 const PAGE_SIZE = 10;
 
@@ -49,6 +45,8 @@ export function EmailHistory() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [activeHtml, setActiveHtml] = useState<string | null>(null);
   const [fetchingReport, setFetchingReport] = useState(false);
+  const [reportError, setReportError] = useState(false);
+  const fetchAbortRef = useRef<AbortController | null>(null);
 
   const loadMore = useCallback(async () => {
     if (inflightRef.current || done) return;
@@ -93,39 +91,59 @@ export function EmailHistory() {
   }, [loadMore, done]);
 
   const handleView = useCallback((url: string) => {
+    fetchAbortRef.current?.abort();
+    const controller = new AbortController();
+    fetchAbortRef.current = controller;
+
     setFetchingReport(true);
     setActiveHtml(null);
-    fetch(url)
+    setReportError(false);
+    fetch(url, { signal: controller.signal })
       .then((r) => r.text())
       .then((html) => setActiveHtml(html))
+      .catch((err) => { if (err.name !== "AbortError") setReportError(true); })
       .finally(() => setFetchingReport(false));
   }, []);
 
   return (
     <div className="w-full">
-      <Dialog
-        open={fetchingReport || activeHtml !== null}
-        onOpenChange={(open) => { if (!open) { setActiveHtml(null); setFetchingReport(false); } }}
+      <DialogPrimitive.Root
+        open={fetchingReport || activeHtml !== null || reportError}
+        onOpenChange={(open) => {
+          if (!open) {
+            fetchAbortRef.current?.abort();
+            setActiveHtml(null);
+            setFetchingReport(false);
+            setReportError(false);
+          }
+        }}
       >
-        <DialogContent className="max-w-none w-screen h-screen p-0 flex flex-col gap-0 rounded-none">
-          <div className="flex items-center justify-end px-4 py-2 border-b border-gray-200 bg-white shrink-0">
-            <DialogClose className="text-gray-500 hover:text-gray-900 text-sm font-medium">
-              Close ✕
-            </DialogClose>
-          </div>
-          {fetchingReport && (
-            <p className="flex-1 flex items-center justify-center text-gray-400 text-sm">Loading…</p>
-          )}
-          {activeHtml !== null && (
-            <iframe
-              srcdoc={activeHtml}
-              className="flex-1 w-full border-0"
-              title="Report"
-              sandbox="allow-same-origin allow-popups"
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+        <DialogPrimitive.Portal>
+          <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/60" />
+          <DialogPrimitive.Content className="fixed inset-0 z-50 flex flex-col bg-white">
+            <div className="flex items-center justify-end px-4 py-2 border-b border-gray-200 shrink-0">
+              <DialogPrimitive.Close className="rounded p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors">
+                <X className="h-4 w-4" aria-hidden="true" />
+                <span className="sr-only">Close</span>
+              </DialogPrimitive.Close>
+            </div>
+            {fetchingReport && (
+              <p className="flex-1 flex items-center justify-center text-gray-400 text-sm">Loading…</p>
+            )}
+            {reportError && (
+              <p className="flex-1 flex items-center justify-center text-red-500 text-sm">Failed to load report.</p>
+            )}
+            {activeHtml !== null && (
+              <iframe
+                srcdoc={activeHtml}
+                className="flex-1 w-full border-0"
+                title="Report"
+                sandbox="allow-same-origin allow-popups"
+              />
+            )}
+          </DialogPrimitive.Content>
+        </DialogPrimitive.Portal>
+      </DialogPrimitive.Root>
 
       <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">
         Past reports
