@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
@@ -13,6 +13,15 @@ import {
 } from '@/lib/pending-action';
 import { fulfillCheckout } from '@/server-actions/fulfill-checkout';
 import { syncSubscriptionFromStripe } from '@/server-actions/sync-subscription';
+import { PaymentModal } from '@/components/local/payment-modal';
+
+interface ProModalData {
+  city: string;
+  language: string;
+  topics: string[];
+  cityRequest: { city: string } | null;
+  referralCode: string | null;
+}
 
 function NVLocalInner() {
   const router = useRouter();
@@ -24,6 +33,8 @@ function NVLocalInner() {
   const [kickoffError, setKickoffError] = useState<string | null>(null);
   const [pending, setPending] = useState<PendingAction | null>(null);
   const [pendingChecked, setPendingChecked] = useState(false);
+  const [proModalOpen, setProModalOpen] = useState(false);
+  const [proModalData, setProModalData] = useState<ProModalData | null>(null);
   const fulfilledSessionRef = useRef<string | null>(null);
   const kickoffFiredRef = useRef(false);
 
@@ -38,8 +49,8 @@ function NVLocalInner() {
 
   const hasSubscribeIntent = pending?.type === 'subscribe';
 
-  // Post-Stripe fulfillment. Ref keyed on sessionId guards against StrictMode
-  // double-invocation (submitRegionWaitlist inside is not idempotent).
+  // Post-Stripe fulfillment (Pro only — free tier no longer goes through checkout sessions).
+  // Ref keyed on sessionId guards against StrictMode double-invocation.
   useEffect(() => {
     if (!isPostCheckout || !sessionId || !user) return;
     if (fulfilledSessionRef.current === sessionId) return;
@@ -66,6 +77,21 @@ function NVLocalInner() {
     setKickingOff(true);
 
     const sub = pending as Extract<PendingAction, { type: 'subscribe' }>;
+
+    // Pro tier after OAuth: open the in-app payment modal instead of calling the checkout API.
+    if (sub.plan === 'pro') {
+      setProModalData({
+        city: sub.city,
+        language: sub.language,
+        topics: sub.topics,
+        cityRequest: sub.cityRequest,
+        referralCode: sub.referralCode,
+      });
+      setProModalOpen(true);
+      clearPendingAction();
+      setKickingOff(false);
+      return;
+    }
 
     (async () => {
       try {
@@ -99,9 +125,10 @@ function NVLocalInner() {
         }
 
         const data = await res.json();
-        if (data.url) {
+        if (data.success) {
           clearPendingAction();
-          window.location.href = data.url;
+          await refetch();
+          setKickingOff(false);
           return;
         }
         clearPendingAction();
@@ -126,8 +153,8 @@ function NVLocalInner() {
   ]);
 
   // Redirect for anyone without a subscription. Exception: stay put while a
-  // subscribe kickoff is about to fire or in flight. When user=null, always
-  // bounce through onboarding (cookie survives to the next /local visit).
+  // subscribe kickoff is about to fire or in flight, or while the Pro payment
+  // modal is open. When user=null, always bounce through onboarding.
   useEffect(() => {
     if (!pendingChecked) return;
     if (authLoading || subLoading || fulfilling || kickingOff) return;
@@ -136,7 +163,7 @@ function NVLocalInner() {
       return;
     }
     if (hasSubscription) return;
-    if (hasSubscribeIntent) return;
+    if (hasSubscribeIntent || proModalOpen) return;
     router.replace('/local/onboarding');
   }, [
     pendingChecked,
@@ -147,8 +174,35 @@ function NVLocalInner() {
     user,
     hasSubscription,
     hasSubscribeIntent,
+    proModalOpen,
     router,
   ]);
+
+  const handleProModalSuccess = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
+
+  const handleProModalClose = useCallback(() => {
+    setProModalOpen(false);
+    // If the user closed without completing payment, send them back to pick a plan.
+    if (!hasSubscription) {
+      router.replace('/local/onboarding');
+    }
+  }, [hasSubscription, router]);
+
+  // The PaymentModal is always in the tree so it can open from any render state.
+  const proModal = (
+    <PaymentModal
+      open={proModalOpen}
+      onClose={handleProModalClose}
+      onSuccess={handleProModalSuccess}
+      city={proModalData?.city}
+      language={proModalData?.language}
+      topics={proModalData?.topics}
+      cityRequest={proModalData?.cityRequest}
+      referralCode={proModalData?.referralCode}
+    />
+  );
 
   if (authLoading || subLoading || fulfilling || kickingOff || !pendingChecked) {
     const label = fulfilling
@@ -157,44 +211,55 @@ function NVLocalInner() {
         ? 'Finishing your setup…'
         : 'Loading…';
     return (
-      <div className="w-full min-h-[calc(100vh-56px)] bg-page flex items-center justify-center px-5">
-        <div className="flex items-center gap-3 text-gray-500 text-[14px]">
-          <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-          {label}
+      <>
+        <div className="w-full min-h-[calc(100vh-56px)] bg-page flex items-center justify-center px-5">
+          <div className="flex items-center gap-3 text-gray-500 text-[14px]">
+            <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+            {label}
+          </div>
         </div>
-      </div>
+        {proModal}
+      </>
     );
   }
 
   if (kickoffError) {
     return (
-      <div className="w-full min-h-[calc(100vh-56px)] bg-page flex items-center justify-center px-5 py-12">
-        <div className="w-full max-w-[400px] bg-white border border-gray-200 rounded-2xl shadow-sm p-8 text-center">
-          <h1 className="text-[20px] font-bold text-gray-950 mb-2 tracking-tight">
-            Checkout didn&apos;t start.
-          </h1>
-          <p
-            className="text-[14px] text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-6"
-            role="alert"
-            aria-live="polite"
-          >
-            {kickoffError}
-          </p>
-          <button
-            type="button"
-            onClick={() => router.replace('/local/onboarding')}
-            className="inline-flex items-center justify-center min-h-[44px] px-6 text-[14.5px] font-semibold text-white bg-brand rounded-xl hover:bg-brand-hover transition-colors shadow-sm"
-          >
-            Back to plan selection
-          </button>
+      <>
+        <div className="w-full min-h-[calc(100vh-56px)] bg-page flex items-center justify-center px-5 py-12">
+          <div className="w-full max-w-[400px] bg-white border border-gray-200 rounded-2xl shadow-sm p-8 text-center">
+            <h1 className="text-[20px] font-bold text-gray-950 mb-2 tracking-tight">
+              Checkout didn&apos;t start.
+            </h1>
+            <p
+              className="text-[14px] text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-6"
+              role="alert"
+              aria-live="polite"
+            >
+              {kickoffError}
+            </p>
+            <button
+              type="button"
+              onClick={() => router.replace('/local/onboarding')}
+              className="inline-flex items-center justify-center min-h-[44px] px-6 text-[14.5px] font-semibold text-white bg-brand rounded-xl hover:bg-brand-hover transition-colors shadow-sm"
+            >
+              Back to plan selection
+            </button>
+          </div>
         </div>
-      </div>
+        {proModal}
+      </>
     );
   }
 
-  if (!user || !hasSubscription) return null;
+  if (!user || !hasSubscription) return proModal;
 
-  return <SubscriptionDashboard />;
+  return (
+    <>
+      <SubscriptionDashboard />
+      {proModal}
+    </>
+  );
 }
 
 export default function NVLocalPage() {

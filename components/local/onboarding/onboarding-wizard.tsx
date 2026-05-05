@@ -21,6 +21,7 @@ import { RequestStep } from "./request-step";
 import { AlternativeCitiesStep } from "./alternative-cities-step";
 import { OnboardingMode, OnboardingStep } from "./types";
 import { useOnboardingState } from "./use-onboarding-state";
+import { PaymentModal } from "@/components/local/payment-modal";
 
 const SUBSCRIBE_LABELS: Record<OnboardingStep, string> = {
   1: "City",
@@ -63,6 +64,7 @@ export function OnboardingWizard() {
       : null,
   );
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [preAuthNotice, setPreAuthNotice] = useState<string | null>(null);
   const [autoKickoffLabel, setAutoKickoffLabel] = useState<string | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -249,6 +251,12 @@ export function OnboardingWizard() {
         return;
       }
 
+      // Pro tier: open the in-app payment modal — no Stripe redirect needed.
+      if (plan === "pro") {
+        setShowPaymentModal(true);
+        return;
+      }
+
       setIsRedirecting(true);
       try {
         const res = await fetch("/api/stripe/checkout", {
@@ -284,8 +292,8 @@ export function OnboardingWizard() {
         }
 
         const data = await res.json();
-        if (data.url) {
-          window.location.href = data.url;
+        if (data.success) {
+          router.replace("/local");
           return;
         }
         setCheckoutError(data.error ?? "Something went wrong. Please try again.");
@@ -428,6 +436,17 @@ export function OnboardingWizard() {
           </p>
         )}
       </div>
+
+      <PaymentModal
+        open={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        onSuccess={() => router.replace("/local")}
+        city={state.city}
+        language={state.language}
+        topics={state.topics}
+        cityRequest={state.cityRequest}
+        referralCode={referralCode || null}
+      />
 
       {(preAuthNotice || autoKickoffLabel) && (
         <div

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getStripe } from '@/lib/stripe';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
+import { submitRegionWaitlist } from '@/server-actions/request-region';
 
 interface CityRequestBody {
   city?: unknown;
@@ -47,7 +49,6 @@ export async function POST(request: NextRequest) {
     ? process.env.STRIPE_PRO_PRICE_ID!
     : process.env.STRIPE_BASIC_PRICE_ID!;
 
-  const origin = request.headers.get('origin') ?? 'http://localhost:3000';
   const stripe = getStripe();
 
   const customers = await stripe.customers.list({ email: user.email, limit: 1 });
@@ -84,6 +85,69 @@ export async function POST(request: NextRequest) {
   if (cityRequestMeta) metadata.city_request = cityRequestMeta;
   if (referralCode) metadata.referral_code = referralCode;
 
+  // Free tier: create the subscription directly — no hosted checkout page needed
+  // since no payment is required. Write to DB immediately and return success.
+  if (plan === 'free') {
+    const stripeSub = await stripe.subscriptions.create({
+      customer: stripeCustomerId,
+      items: [{ price: priceId, quantity: 1 }],
+      metadata,
+    });
+
+    const admin = createSupabaseAdminClient();
+
+    const upsertPayload: Record<string, string> = {
+      contact: user.email,
+      stripe_customer_id: stripeCustomerId,
+      stripe_subscription_id: stripeSub.id,
+      stripe_status: 'active',
+      city: rawCity,
+      preferred_language: rawLanguage,
+    };
+
+    const { error: upsertError } = await admin
+      .from('subscriptions')
+      .upsert(upsertPayload, { onConflict: 'contact' });
+
+    if (upsertError) {
+      return NextResponse.json({ error: upsertError.message }, { status: 500 });
+    }
+
+    // Save topics (max 1 for free tier).
+    const truncatedTopics = rawTopics.slice(0, 1).map((t) => t.toLowerCase());
+    if (truncatedTopics.length > 0) {
+      const { data: topicRows } = await admin
+        .from('supported_topics')
+        .select('topic_id, topic_name')
+        .in('topic_name', truncatedTopics);
+
+      await admin
+        .from('subscription_topics')
+        .delete()
+        .eq('subscription_id', user.email);
+
+      if (topicRows && topicRows.length > 0) {
+        await admin
+          .from('subscription_topics')
+          .insert(topicRows.map((row) => ({ subscription_id: user.email, topic_id: row.topic_id })));
+      }
+    }
+
+    // Notify admin if the user requested an unsupported city.
+    if (cityRequestMeta) {
+      await submitRegionWaitlist({
+        city: cityRequestMeta,
+        voterEmail: user.email,
+        referralCode: referralCode || undefined,
+      });
+    }
+
+    return NextResponse.json({ success: true });
+  }
+
+  // Pro tier: use Stripe-hosted checkout so payment details are collected securely.
+  const origin = request.headers.get('origin') ?? 'http://localhost:3000';
+
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
     customer: stripeCustomerId,
@@ -93,7 +157,6 @@ export async function POST(request: NextRequest) {
         quantity: 1,
       },
     ],
-    ...(plan === 'free' && { payment_method_collection: 'if_required' as const }),
     success_url: `${origin}/local?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${origin}/local/onboarding?checkout=cancel`,
     metadata,

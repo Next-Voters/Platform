@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { useSubscription } from '@/hooks/use-subscription';
 import { ManageTopics } from '@/components/local/manage-topics';
 import { EmailHistory } from '@/components/local/email-history';
+import { PaymentModal } from '@/components/local/payment-modal';
 import { createReferral, getOrCreateReferralCode, getReferralStats } from '@/server-actions/referrals';
 import { buildReferralLink } from '@/lib/referral';
 
@@ -13,6 +14,7 @@ export function SubscriptionDashboard() {
   const { isPro, refetch } = useSubscription();
 
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
 
   // Referral state
   const [referralEmail, setReferralEmail] = useState('');
@@ -46,11 +48,14 @@ export function SubscriptionDashboard() {
     try {
       const res = await fetch('/api/stripe/upgrade', { method: 'POST' });
       const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
-      } else if (data.success) {
-        refetch();
+      if (data.success) {
+        // Customer had a payment method — subscription swapped in-place.
+        await refetch();
         setCheckoutLoading(false);
+      } else if (data.requiresPayment) {
+        // No payment method on file — open the in-app payment modal.
+        setCheckoutLoading(false);
+        setUpgradeModalOpen(true);
       } else {
         alert(data.error ?? 'Failed to upgrade');
         setCheckoutLoading(false);
@@ -224,6 +229,16 @@ export function SubscriptionDashboard() {
           <EmailHistory key={historyVersion} />
         </div>
       </div>
+
+      {/* Upgrade modal — no city/language/topics needed; user already has them saved */}
+      <PaymentModal
+        open={upgradeModalOpen}
+        onClose={() => setUpgradeModalOpen(false)}
+        onSuccess={async () => {
+          await refetch();
+          setUpgradeModalOpen(false);
+        }}
+      />
     </div>
   );
 }
