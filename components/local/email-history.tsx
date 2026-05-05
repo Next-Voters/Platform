@@ -167,26 +167,15 @@ export function EmailHistory() {
 
 function DateCardView({ card, onView }: { card: DateCard; onView: (url: string) => void }) {
   return (
-    <div className="border border-gray-200 rounded-xl bg-white overflow-hidden">
-      <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
-        <p className="text-[13.5px] font-bold text-gray-900">
-          {formatDate(card.date)}
-        </p>
-      </div>
-      <ul className="divide-y divide-gray-100">
-        {card.reports.map((r) => (
-          <li key={r.topic} className="px-4 py-2.5 flex items-center justify-between gap-3">
-            <span className="text-[14px] text-gray-700 truncate">{r.topic}</span>
-            <button
-              onClick={() => onView(r.renderUrl)}
-              className="inline-flex items-center gap-1 text-[12.5px] font-bold text-brand hover:text-brand-hover shrink-0"
-            >
-              View
-              <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
-            </button>
-          </li>
-        ))}
-      </ul>
+    <div className="border border-gray-200 rounded-xl bg-white px-4 py-2.5 flex items-center justify-between gap-3">
+      <p className="text-[13.5px] font-medium text-gray-900">{formatDate(card.date)}</p>
+      <button
+        onClick={() => onView(card.renderUrl)}
+        className="inline-flex items-center gap-1 text-[12.5px] font-bold text-brand hover:text-brand-hover shrink-0"
+      >
+        View
+        <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
+      </button>
     </div>
   );
 }
