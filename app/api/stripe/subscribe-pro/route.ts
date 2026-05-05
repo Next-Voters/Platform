@@ -80,7 +80,8 @@ export async function POST(request: NextRequest) {
       metadata: { contact: user.email, plan: 'pro' },
     });
 
-    // Subscription ID unchanged — webhook will sync status. Nothing else to write.
+    // Write tier immediately so refetch() after this call sees the updated state.
+    await admin.from('subscriptions').update({ tier: 'pro' }).eq('contact', user.email);
     return NextResponse.json({ success: true });
   }
 
@@ -109,6 +110,7 @@ export async function POST(request: NextRequest) {
     stripe_customer_id: stripeCustomerId,
     stripe_subscription_id: stripeSub.id,
     stripe_status: 'active',
+    tier: 'pro',
     ...(rawCity && { city: rawCity }),
     ...(rawLanguage && { preferred_language: rawLanguage }),
   };

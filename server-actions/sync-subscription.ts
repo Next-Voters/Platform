@@ -32,6 +32,9 @@ export async function syncSubscriptionFromStripe(): Promise<{
   const sub = subs.data[0];
   if (!sub) return { ok: false, error: "No active Stripe subscription" };
 
+  const proPriceId = process.env.STRIPE_PRO_PRICE_ID
+  const tier = sub.items.data.some((i) => i.price.id === proPriceId) ? 'pro' : 'free'
+
   const admin = createSupabaseAdminClient();
   const { error } = await admin.from("subscriptions").upsert(
     {
@@ -39,6 +42,7 @@ export async function syncSubscriptionFromStripe(): Promise<{
       stripe_customer_id: customer.id,
       stripe_subscription_id: sub.id,
       stripe_status: "active",
+      tier,
     },
     { onConflict: "contact" },
   );

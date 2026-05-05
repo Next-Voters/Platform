@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getStripe } from '@/lib/stripe';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 
 export async function POST() {
   const supabase = await createSupabaseServerClient();
@@ -59,6 +60,9 @@ export async function POST() {
         metadata: { contact: user.email, plan: 'pro' },
         proration_behavior: 'create_prorations',
       });
+      // Write tier immediately so refetch() after this call sees the updated state.
+      const admin = createSupabaseAdminClient();
+      await admin.from('subscriptions').update({ tier: 'pro' }).eq('contact', user.email);
       return NextResponse.json({ success: true });
     }
 
