@@ -4,6 +4,7 @@ import Script from 'next/script'
 import './globals.css'
 import Root from '@/components/common/root'
 import { AuthProvider } from '@/wrappers/AuthProvider'
+import { SubscriptionProvider } from '@/wrappers/SubscriptionProvider'
 
 const GOOGLE_ADS_ID = 'AW-18024404483'
 
@@ -106,7 +107,9 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         <AuthProvider>
-          <Root>{children}</Root>
+          <SubscriptionProvider>
+            <Root>{children}</Root>
+          </SubscriptionProvider>
         </AuthProvider>
       </body>
     </html>

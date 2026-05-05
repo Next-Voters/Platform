@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
             stripe_customer_id: session.customer as string,
             stripe_subscription_id: session.subscription as string,
             stripe_status: 'active',
+            tier: session.metadata?.plan === 'pro' ? 'pro' : 'free',
           },
           { onConflict: 'contact' }
         );
@@ -51,11 +52,14 @@ export async function POST(request: NextRequest) {
       const contact = sub.metadata?.contact;
       if (!contact) break;
 
+      const proPriceId = process.env.STRIPE_PRO_PRICE_ID
+      const subTier = sub.items.data.some((i) => i.price.id === proPriceId) ? 'pro' : 'free'
       const { error: updateError } = await supabase
         .from('subscriptions')
         .update({
           stripe_status: sub.status,
           stripe_period_end: new Date((sub as unknown as { current_period_end: number }).current_period_end * 1000).toISOString(),
+          tier: subTier,
         })
         .eq('contact', contact);
       if (updateError) {
@@ -90,11 +94,14 @@ export async function POST(request: NextRequest) {
       const contact = stripeSub.metadata?.contact;
       if (!contact) break;
 
+      const proPriceIdForPaid = process.env.STRIPE_PRO_PRICE_ID
+      const paidTier = stripeSub.items.data.some((i) => i.price.id === proPriceIdForPaid) ? 'pro' : 'free'
       const { error: paidError } = await supabase
         .from('subscriptions')
         .update({
           stripe_status: 'active',
           stripe_period_end: new Date((stripeSub as unknown as { current_period_end: number }).current_period_end * 1000).toISOString(),
+          tier: paidTier,
         })
         .eq('contact', contact);
       if (paidError) {

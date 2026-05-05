@@ -71,6 +71,7 @@ export async function fulfillCheckout(sessionId: string): Promise<{ success: boo
     stripe_customer_id: session.customer as string,
     stripe_subscription_id: session.subscription as string,
     stripe_status: "active",
+    tier: plan,
   }
   if (city) upsertPayload.city = city
   if (language) upsertPayload.preferred_language = language
