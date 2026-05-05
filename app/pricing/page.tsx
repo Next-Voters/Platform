@@ -38,36 +38,6 @@ const faqs = [
   },
 ];
 
-const valuePillars = [
-  {
-    icon: (
-      <svg className="w-5 h-5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-      </svg>
-    ),
-    label: 'Nonpartisan',
-    desc: 'Written without spin. We explain policy, not politics.',
-  },
-  {
-    icon: (
-      <svg className="w-5 h-5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-      </svg>
-    ),
-    label: 'Weekly updates',
-    desc: 'Delivered to your inbox every week. Never miss a bill.',
-  },
-  {
-    icon: (
-      <svg className="w-5 h-5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
-      </svg>
-    ),
-    label: 'AI policy chat',
-    desc: 'Ask any question. Get a clear, sourced answer.',
-  },
-];
-
 export default function PricingPage() {
   return (
     <div className="w-full min-h-screen bg-page">
@@ -162,26 +132,6 @@ export default function PricingPage() {
         <p className="text-center text-[12.5px] text-gray-400 mt-5">
           Secure checkout via Stripe &middot; No credit card required for free plan
         </p>
-      </section>
-
-      {/* Value pillars */}
-      <section className="px-5 max-w-[760px] mx-auto mb-20 mt-14">
-        <div className="border-t border-gray-200 pt-14">
-          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest text-center mb-10">
-            What you get
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 text-center">
-            {valuePillars.map(({ icon, label, desc }) => (
-              <div key={label} className="flex flex-col items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center shrink-0">
-                  {icon}
-                </div>
-                <p className="text-[14.5px] font-bold text-gray-950">{label}</p>
-                <p className="text-[13.5px] text-gray-500 leading-relaxed">{desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
       </section>
 
       {/* FAQ */}
