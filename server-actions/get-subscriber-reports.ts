@@ -2,7 +2,7 @@
 
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { citySlug, languageCode } from "@/lib/report-paths";
+import { citySlug } from "@/lib/report-paths";
 
 export type DateCard = {
   date: string;
@@ -36,13 +36,10 @@ export async function getSubscriberReports(
 
   const { data: sub } = await supabase
     .from("subscriptions")
-    .select("city, preferred_language")
+    .select("city")
     .eq("contact", user.email)
     .maybeSingle();
-  if (!sub?.city || !sub?.preferred_language) return { cards: [], nextCursor: null };
-
-  const langCode = languageCode(sub.preferred_language);
-  if (langCode === null) return { cards: [], nextCursor: null };
+  if (!sub?.city) return { cards: [], nextCursor: null };
 
   const cSlug = citySlug(sub.city);
 
@@ -50,7 +47,7 @@ export async function getSubscriberReports(
   const storage = createSupabaseAdminClient();
   const { data, error } = await storage.storage
     .from("reports")
-    .list(`${cSlug}/${langCode}`, {
+    .list(cSlug, {
       limit: pageSize,
       offset,
       sortBy: { column: "name", order: "desc" },
@@ -65,7 +62,7 @@ export async function getSubscriberReports(
       const date = m[1];
       return {
         date,
-        renderUrl: `/api/render?path=${encodeURIComponent(`${cSlug}/${langCode}/${date}.html`)}`,
+        renderUrl: `/api/render?path=${encodeURIComponent(`${cSlug}/${date}.html`)}`,
       };
     })
     .filter((x): x is DateCard => x !== null);
