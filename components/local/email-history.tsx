@@ -43,15 +43,7 @@ export function EmailHistory() {
   const [done, setDone] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [activeBlobUrl, setActiveBlobUrl] = useState<string | null>(null);
-  const [fetchingReport, setFetchingReport] = useState(false);
-  const [reportError, setReportError] = useState(false);
-  const fetchAbortRef = useRef<AbortController | null>(null);
-
-  // Revoke the object URL whenever it changes so we don't leak memory.
-  useEffect(() => {
-    return () => { if (activeBlobUrl) URL.revokeObjectURL(activeBlobUrl); };
-  }, [activeBlobUrl]);
+  const [activeUrl, setActiveUrl] = useState<string | null>(null);
 
   const loadMore = useCallback(async () => {
     if (inflightRef.current || done) return;
@@ -95,38 +87,12 @@ export function EmailHistory() {
     return () => observer.disconnect();
   }, [loadMore, done]);
 
-  const handleView = useCallback((url: string) => {
-    fetchAbortRef.current?.abort();
-    const controller = new AbortController();
-    fetchAbortRef.current = controller;
-
-    setFetchingReport(true);
-    setActiveBlobUrl(null);
-    setReportError(false);
-    fetch(url, { signal: controller.signal })
-      .then((r) => r.text())
-      .then((html) => {
-        // Wrap in a Blob with an explicit text/html MIME type so the iframe
-        // always renders it as HTML regardless of what Supabase serves.
-        const blob = new Blob([html], { type: "text/html; charset=utf-8" });
-        setActiveBlobUrl(URL.createObjectURL(blob));
-      })
-      .catch((err) => { if (err.name !== "AbortError") setReportError(true); })
-      .finally(() => setFetchingReport(false));
-  }, []);
 
   return (
     <div className="w-full">
       <DialogPrimitive.Root
-        open={fetchingReport || activeBlobUrl !== null || reportError}
-        onOpenChange={(open) => {
-          if (!open) {
-            fetchAbortRef.current?.abort();
-            setActiveBlobUrl(null);
-            setFetchingReport(false);
-            setReportError(false);
-          }
-        }}
+        open={activeUrl !== null}
+        onOpenChange={(open) => { if (!open) setActiveUrl(null); }}
       >
         <DialogPrimitive.Portal>
           <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/60" />
@@ -137,15 +103,9 @@ export function EmailHistory() {
                 <span className="sr-only">Close</span>
               </DialogPrimitive.Close>
             </div>
-            {fetchingReport && (
-              <p className="flex-1 flex items-center justify-center text-gray-400 text-sm">Loading…</p>
-            )}
-            {reportError && (
-              <p className="flex-1 flex items-center justify-center text-red-500 text-sm">Failed to load report.</p>
-            )}
-            {activeBlobUrl !== null && (
+            {activeUrl && (
               <iframe
-                src={activeBlobUrl}
+                src={activeUrl}
                 className="flex-1 w-full border-0"
                 title="Report"
                 sandbox="allow-same-origin allow-popups"
@@ -171,7 +131,7 @@ export function EmailHistory() {
         ) : (
           <div className="flex flex-col gap-3">
             {cards.map((card) => (
-              <DateCardView key={card.date} card={card} onView={handleView} />
+              <DateCardView key={card.date} card={card} onView={setActiveUrl} />
             ))}
 
             {!done && (
