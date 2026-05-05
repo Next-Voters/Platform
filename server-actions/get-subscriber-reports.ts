@@ -177,7 +177,7 @@ export async function getSubscriberReports(
         const path = `${cSlug}/${topicSlug(topic)}/${langCode}/${date}.html`;
         return {
           topic,
-          renderUrl: `/api/render?bucket=reports&path=${encodeURIComponent(path)}`,
+          renderUrl: `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/reports/${path}`,
         };
       }),
     };
