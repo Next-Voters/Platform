@@ -43,10 +43,15 @@ export function EmailHistory() {
   const [done, setDone] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [activeHtml, setActiveHtml] = useState<string | null>(null);
+  const [activeBlobUrl, setActiveBlobUrl] = useState<string | null>(null);
   const [fetchingReport, setFetchingReport] = useState(false);
   const [reportError, setReportError] = useState(false);
   const fetchAbortRef = useRef<AbortController | null>(null);
+
+  // Revoke the object URL whenever it changes so we don't leak memory.
+  useEffect(() => {
+    return () => { if (activeBlobUrl) URL.revokeObjectURL(activeBlobUrl); };
+  }, [activeBlobUrl]);
 
   const loadMore = useCallback(async () => {
     if (inflightRef.current || done) return;
@@ -96,11 +101,16 @@ export function EmailHistory() {
     fetchAbortRef.current = controller;
 
     setFetchingReport(true);
-    setActiveHtml(null);
+    setActiveBlobUrl(null);
     setReportError(false);
     fetch(url, { signal: controller.signal })
       .then((r) => r.text())
-      .then((html) => setActiveHtml(html))
+      .then((html) => {
+        // Wrap in a Blob with an explicit text/html MIME type so the iframe
+        // always renders it as HTML regardless of what Supabase serves.
+        const blob = new Blob([html], { type: "text/html; charset=utf-8" });
+        setActiveBlobUrl(URL.createObjectURL(blob));
+      })
       .catch((err) => { if (err.name !== "AbortError") setReportError(true); })
       .finally(() => setFetchingReport(false));
   }, []);
@@ -108,11 +118,11 @@ export function EmailHistory() {
   return (
     <div className="w-full">
       <DialogPrimitive.Root
-        open={fetchingReport || activeHtml !== null || reportError}
+        open={fetchingReport || activeBlobUrl !== null || reportError}
         onOpenChange={(open) => {
           if (!open) {
             fetchAbortRef.current?.abort();
-            setActiveHtml(null);
+            setActiveBlobUrl(null);
             setFetchingReport(false);
             setReportError(false);
           }
@@ -133,9 +143,9 @@ export function EmailHistory() {
             {reportError && (
               <p className="flex-1 flex items-center justify-center text-red-500 text-sm">Failed to load report.</p>
             )}
-            {activeHtml !== null && (
+            {activeBlobUrl !== null && (
               <iframe
-                srcDoc={activeHtml}
+                src={activeBlobUrl}
                 className="flex-1 w-full border-0"
                 title="Report"
                 sandbox="allow-same-origin allow-popups"
