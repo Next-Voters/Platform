@@ -2,8 +2,8 @@
 
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
-export async function getRegionVoteCount(city: string): Promise<number> {
-  const trimmed = city?.trim();
+export async function getRegionVoteCount(region: string): Promise<number> {
+  const trimmed = region?.trim();
   if (!trimmed) return 0;
 
   try {
@@ -11,7 +11,7 @@ export async function getRegionVoteCount(city: string): Promise<number> {
     const { data } = await admin
       .from("region_requests")
       .select("vote_count")
-      .eq("city", trimmed)
+      .eq("region", trimmed)
       .maybeSingle();
     return data?.vote_count ?? 0;
   } catch {

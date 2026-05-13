@@ -3,7 +3,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 
-export async function updateUserCity(city: string): Promise<{ error?: string }> {
+export async function updateUserRegion(region: string): Promise<{ error?: string }> {
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -12,7 +12,7 @@ export async function updateUserCity(city: string): Promise<{ error?: string }> 
   const admin = createSupabaseAdminClient()
   const { error } = await admin
     .from("subscriptions")
-    .update({ city })
+    .update({ region })
     .eq("contact", user.email)
 
   if (error) return { error: error.message }

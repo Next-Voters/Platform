@@ -7,8 +7,8 @@ import { useSubscription } from "@/hooks/use-subscription";
 import { TierBadge } from "@/components/local/tier-badge";
 import { getUserTopics } from "@/server-actions/get-user-topics";
 import { updateUserTopics } from "@/server-actions/update-user-topics";
-import { getSupportedCities, getUserCity } from "@/server-actions/get-supported-cities";
-import { updateUserCity } from "@/server-actions/update-user-city";
+import { getSupportedRegions, getUserRegion } from "@/server-actions/get-supported-cities";
+import { updateUserRegion } from "@/server-actions/update-user-city";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function ManageTopics({ onSaved }: { onSaved?: () => void } = {}) {
@@ -20,12 +20,12 @@ export function ManageTopics({ onSaved }: { onSaved?: () => void } = {}) {
   const [savedMsg, setSavedMsg] = useState("");
   const [topicsLoading, setTopicsLoading] = useState(true);
 
-  const [cities, setCities] = useState<string[]>([]);
-  const [selectedCity, setSelectedCity] = useState("");
+  const [regions, setRegions] = useState<string[]>([]);
+  const [selectedRegion, setSelectedRegion] = useState("");
 
   useEffect(() => {
-    getSupportedCities().then(setCities);
-    getUserCity().then((city) => { if (city) setSelectedCity(city); });
+    getSupportedRegions().then(setRegions);
+    getUserRegion().then((region) => { if (region) setSelectedRegion(region); });
   }, []);
 
   useEffect(() => {
@@ -54,12 +54,12 @@ export function ManageTopics({ onSaved }: { onSaved?: () => void } = {}) {
   const handleSave = async () => {
     setSaving(true);
     setSavedMsg("");
-    const [topicResult, cityResult] = await Promise.all([
+    const [topicResult, regionResult] = await Promise.all([
       updateUserTopics(selected),
-      selectedCity ? updateUserCity(selectedCity) : Promise.resolve({} as { error?: string }),
+      selectedRegion ? updateUserRegion(selectedRegion) : Promise.resolve({} as { error?: string }),
     ]);
     setSaving(false);
-    const error = topicResult.error || cityResult.error;
+    const error = topicResult.error || regionResult.error;
     if (error) {
       setSavedMsg(error);
     } else {
@@ -98,14 +98,14 @@ export function ManageTopics({ onSaved }: { onSaved?: () => void } = {}) {
           </p>
           <div className="flex items-center gap-3">
             <Globe className="h-4 w-4 text-gray-400 shrink-0" />
-            <Select value={selectedCity} onValueChange={setSelectedCity}>
+            <Select value={selectedRegion} onValueChange={setSelectedRegion}>
               <SelectTrigger className="w-full sm:w-[240px] bg-white border border-gray-200 text-gray-900 text-[14px] rounded-xl min-h-[44px]">
-                <SelectValue placeholder="Select your city" />
+                <SelectValue placeholder="Select your region" />
               </SelectTrigger>
               <SelectContent className="bg-white text-gray-900 border border-gray-200 z-[50]">
-                {cities.map((city) => (
-                  <SelectItem key={city} value={city} className="hover:bg-gray-100 focus:bg-gray-100">
-                    {city}
+                {regions.map((region) => (
+                  <SelectItem key={region} value={region} className="hover:bg-gray-100 focus:bg-gray-100">
+                    {region}
                   </SelectItem>
                 ))}
               </SelectContent>

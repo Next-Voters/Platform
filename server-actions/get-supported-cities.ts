@@ -2,17 +2,17 @@
 
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
-export async function getSupportedCities(): Promise<string[]> {
+export async function getSupportedRegions(): Promise<string[]> {
   const supabase = await createSupabaseServerClient()
   const { data } = await supabase
-    .from("supported_cities")
-    .select("city")
-    .order("city")
+    .from("regions")
+    .select("region")
+    .order("region")
 
-  return data?.map((row) => row.city) ?? []
+  return data?.map((row) => row.region) ?? []
 }
 
-export async function getUserCity(): Promise<string | null> {
+export async function getUserRegion(): Promise<string | null> {
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -20,9 +20,9 @@ export async function getUserCity(): Promise<string | null> {
 
   const { data } = await supabase
     .from("subscriptions")
-    .select("city")
+    .select("region")
     .eq("contact", user.email)
     .maybeSingle()
 
-  return data?.city ?? null
+  return data?.region ?? null
 }

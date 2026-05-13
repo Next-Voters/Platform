@@ -230,7 +230,7 @@ export function SubscriptionDashboard() {
         </div>
       </div>
 
-      {/* Upgrade modal — no city/language/topics needed; user already has them saved */}
+      {/* Upgrade modal — no region/topics needed; user already has them saved */}
       <PaymentModal
         open={upgradeModalOpen}
         onClose={() => setUpgradeModalOpen(false)}

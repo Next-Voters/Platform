@@ -4,8 +4,8 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
 import { submitRegionWaitlist } from '@/server-actions/request-region';
 
-interface CityRequestBody {
-  city?: unknown;
+interface RegionRequestBody {
+  region?: unknown;
 }
 
 export async function POST(request: NextRequest) {
@@ -19,23 +19,23 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => ({}));
   const plan = body.plan === 'pro' ? 'pro' : 'free';
 
-  const rawCity = typeof body.city === 'string' ? body.city.trim() : '';
+  const rawRegion = typeof body.region === 'string' ? body.region.trim() : '';
   const rawTopics: string[] = Array.isArray(body.topics)
     ? body.topics.filter((t: unknown): t is string => typeof t === 'string' && t.trim().length > 0).map((t: string) => t.trim())
     : [];
 
-  if (!rawCity) {
-    return NextResponse.json({ error: 'Please select a city.' }, { status: 400 });
+  if (!rawRegion) {
+    return NextResponse.json({ error: 'Please select a region.' }, { status: 400 });
   }
   if (rawTopics.length === 0) {
     return NextResponse.json({ error: 'Please select at least one topic.' }, { status: 400 });
   }
 
-  const cityRequest = body.cityRequest as CityRequestBody | null | undefined;
-  let cityRequestMeta = '';
-  if (cityRequest && typeof cityRequest === 'object') {
-    const city = typeof cityRequest.city === 'string' ? cityRequest.city.trim() : '';
-    if (city) cityRequestMeta = city;
+  const regionRequest = body.regionRequest as RegionRequestBody | null | undefined;
+  let regionRequestMeta = '';
+  if (regionRequest && typeof regionRequest === 'object') {
+    const region = typeof regionRequest.region === 'string' ? regionRequest.region.trim() : '';
+    if (region) regionRequestMeta = region;
   }
 
   const referralCode = typeof body.referralCode === 'string' ? body.referralCode.trim() : '';
@@ -91,10 +91,10 @@ export async function POST(request: NextRequest) {
   const metadata: Record<string, string> = {
     contact: user.email,
     plan,
-    city: rawCity,
+    region: rawRegion,
     topics: rawTopics.join('|'),
   };
-  if (cityRequestMeta) metadata.city_request = cityRequestMeta;
+  if (regionRequestMeta) metadata.region_request = regionRequestMeta;
   if (referralCode) metadata.referral_code = referralCode;
 
   // Free tier: create the subscription directly — no hosted checkout page needed
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
       stripe_status: stripeSub.status,
       ...(periodEnd && { stripe_period_end: new Date(periodEnd * 1000).toISOString() }),
       tier: 'free',
-      city: rawCity,
+      region: rawRegion,
     };
 
     const { error: upsertError } = await admin
@@ -146,10 +146,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Notify admin if the user requested an unsupported city.
-    if (cityRequestMeta) {
+    // Notify admin if the user requested an unsupported region.
+    if (regionRequestMeta) {
       await submitRegionWaitlist({
-        city: cityRequestMeta,
+        region: regionRequestMeta,
         voterEmail: user.email,
         referralCode: referralCode || undefined,
       });

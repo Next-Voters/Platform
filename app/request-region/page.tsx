@@ -42,7 +42,7 @@ function RequestRegionForm() {
     setSubmitting(true);
     try {
       const result = await submitRegionWaitlist({
-        city: trimmedCity,
+        region: trimmedCity,
         voterEmail: trimmedEmail,
         referralCode: refCode || undefined,
       });

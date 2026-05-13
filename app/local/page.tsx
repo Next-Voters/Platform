@@ -16,9 +16,9 @@ import { syncSubscriptionFromStripe } from '@/server-actions/sync-subscription';
 import { PaymentModal } from '@/components/local/payment-modal';
 
 interface ProModalData {
-  city: string;
+  region: string;
   topics: string[];
-  cityRequest: { city: string } | null;
+  regionRequest: { region: string } | null;
   referralCode: string | null;
 }
 
@@ -80,9 +80,9 @@ function NVLocalInner() {
     // Pro tier after OAuth: open the in-app payment modal instead of calling the checkout API.
     if (sub.plan === 'pro') {
       setProModalData({
-        city: sub.city,
+        region: sub.region,
         topics: sub.topics,
-        cityRequest: sub.cityRequest,
+        regionRequest: sub.regionRequest,
         referralCode: sub.referralCode,
       });
       setProModalOpen(true);
@@ -98,9 +98,9 @@ function NVLocalInner() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             plan: sub.plan,
-            city: sub.city,
+            region: sub.region,
             topics: sub.topics,
-            cityRequest: sub.cityRequest,
+            regionRequest: sub.regionRequest,
             referralCode: sub.referralCode || undefined,
           }),
         });
@@ -193,9 +193,9 @@ function NVLocalInner() {
       open={proModalOpen}
       onClose={handleProModalClose}
       onSuccess={handleProModalSuccess}
-      city={proModalData?.city}
+      region={proModalData?.region}
       topics={proModalData?.topics}
-      cityRequest={proModalData?.cityRequest}
+      regionRequest={proModalData?.regionRequest}
       referralCode={proModalData?.referralCode}
     />
   );

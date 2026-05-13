@@ -6,13 +6,13 @@ import { OnboardingState } from "./types";
 
 interface Props {
   state: OnboardingState;
-  supportedCities: string[];
-  onPick: (city: string) => void;
+  supportedRegions: string[];
+  onPick: (region: string) => void;
 }
 
-export function AlternativeCitiesStep({ state, supportedCities, onPick }: Props) {
+export function AlternativeCitiesStep({ state, supportedRegions, onPick }: Props) {
   const [skipped, setSkipped] = useState(false);
-  const requestedCity = state.cityRequest?.city ?? "your city";
+  const requestedCity = state.regionRequest?.region ?? "your city";
 
   if (skipped) {
     return (
@@ -46,10 +46,10 @@ export function AlternativeCitiesStep({ state, supportedCities, onPick }: Props)
       </p>
 
       <div className="space-y-2 mb-6">
-        {supportedCities.length === 0 ? (
+        {supportedRegions.length === 0 ? (
           <p className="text-[13.5px] text-gray-400">No other cities available yet.</p>
         ) : (
-          supportedCities.map((city) => (
+          supportedRegions.map((city) => (
             <button
               key={city}
               type="button"

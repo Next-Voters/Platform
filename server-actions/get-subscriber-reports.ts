@@ -53,10 +53,10 @@ export async function getSubscriberReports(
 
   const { data: sub } = await supabase
     .from("subscriptions")
-    .select("city")
+    .select("region")
     .eq("contact", user.email)
     .maybeSingle();
-  if (!sub?.city) return { cards: [], nextCursor: null };
+  if (!sub?.region) return { cards: [], nextCursor: null };
 
   const { data: topicRows } = await supabase
     .from("subscription_topics")
@@ -68,7 +68,7 @@ export async function getSubscriberReports(
   let query = supabase
     .from("reports")
     .select("report_id, report_date, items, sources, supported_topics(topic_name)")
-    .eq("city", sub.city)
+    .eq("region", sub.region)
     .order("report_date", { ascending: false })
     .range(offset, offset + pageSize - 1);
 

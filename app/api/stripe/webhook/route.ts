@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
         tier = session.metadata?.plan === 'pro' ? 'pro' : 'free';
       }
 
-      const checkoutCity = typeof session.metadata?.city === 'string' ? session.metadata.city.trim() : '';
+      const checkoutRegion = typeof session.metadata?.region === 'string' ? session.metadata.region.trim() : '';
       const checkoutPayload: Record<string, string> = {
         contact,
         stripe_customer_id: session.customer as string,
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
         stripe_status: 'active',
         tier,
       };
-      if (checkoutCity) checkoutPayload.city = checkoutCity;
+      if (checkoutRegion) checkoutPayload.region = checkoutRegion;
       if (periodEnd) checkoutPayload.stripe_period_end = periodEnd;
 
       const { error: checkoutError } = await supabase

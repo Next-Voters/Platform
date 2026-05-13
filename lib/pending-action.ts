@@ -14,14 +14,14 @@ export type PendingAction =
   | {
       type: "subscribe";
       plan: "free" | "pro";
-      city: string;
+      region: string;
       topics: string[];
-      cityRequest: { city: string } | null;
+      regionRequest: { region: string } | null;
       referralCode: string | null;
     }
   | {
       type: "request";
-      city: string;
+      region: string;
       referralCode: string | null;
     };
 
@@ -61,11 +61,11 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((v) => typeof v === "string");
 }
 
-function isCityRequest(value: unknown): value is { city: string } | null {
+function isRegionRequest(value: unknown): value is { region: string } | null {
   if (value === null) return true;
   if (!value || typeof value !== "object") return false;
   const v = value as Record<string, unknown>;
-  return typeof v.city === "string";
+  return typeof v.region === "string";
 }
 
 function isPendingAction(value: unknown): value is PendingAction {
@@ -74,15 +74,15 @@ function isPendingAction(value: unknown): value is PendingAction {
   if (v.type === "subscribe") {
     return (
       (v.plan === "free" || v.plan === "pro") &&
-      typeof v.city === "string" &&
+      typeof v.region === "string" &&
       isStringArray(v.topics) &&
-      isCityRequest(v.cityRequest) &&
+      isRegionRequest(v.regionRequest) &&
       (v.referralCode === null || typeof v.referralCode === "string")
     );
   }
   if (v.type === "request") {
     return (
-      typeof v.city === "string" &&
+      typeof v.region === "string" &&
       (v.referralCode === null || typeof v.referralCode === "string")
     );
   }

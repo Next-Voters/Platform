@@ -10,7 +10,7 @@ import {
   readPendingAction,
   writePendingAction,
 } from "@/lib/pending-action";
-import { getSupportedCities } from "@/server-actions/get-supported-cities";
+import { getSupportedRegions } from "@/server-actions/get-supported-cities";
 import { submitRegionWaitlist } from "@/server-actions/request-region";
 import { syncSubscriptionFromStripe } from "@/server-actions/sync-subscription";
 import { CityStep } from "./city-step";
@@ -54,8 +54,8 @@ export function OnboardingWizard() {
     setReferralCode,
   } = useOnboardingState();
 
-  const [supportedCities, setSupportedCities] = useState<string[]>([]);
-  const [citiesLoading, setCitiesLoading] = useState(true);
+  const [supportedRegions, setSupportedRegions] = useState<string[]>([]);
+  const [regionsLoading, setRegionsLoading] = useState(true);
   const [checkoutError, setCheckoutError] = useState<string | null>(
     errorParam === "oauth_failed"
       ? "We couldn't sign you in with Google. Try again, or email hello@nextvoters.com."
@@ -71,9 +71,9 @@ export function OnboardingWizard() {
   const requestCookieHandledRef = useRef(false);
 
   useEffect(() => {
-    getSupportedCities()
-      .then(setSupportedCities)
-      .finally(() => setCitiesLoading(false));
+    getSupportedRegions()
+      .then(setSupportedRegions)
+      .finally(() => setRegionsLoading(false));
   }, []);
 
   useEffect(() => {
@@ -90,15 +90,15 @@ export function OnboardingWizard() {
     }
   }, [urlRef, referralCode, setReferralCode]);
 
-  // Pre-fill city from `?city=` (e.g., from the landing-page hero or the
+  // Pre-fill region from `?city=` (e.g., from the landing-page hero or the
   // /local → onboarding "Back to plan selection" path). Also accepts
   // `?topics=` (comma-sep) so a user returning from a failed kickoff or from
   // a Supabase cookie-delay redirect lands back on their furthest-completed
-  // step instead of step 1. Runs once after cities load so the
+  // step instead of step 1. Runs once after regions load so the
   // supported-match check is valid. URL is stripped after hydration so a
   // remount (auth flip, back-nav) can't re-fire this effect.
   useEffect(() => {
-    if (citiesLoading || hydratedFromCityParamRef.current) return;
+    if (regionsLoading || hydratedFromCityParamRef.current) return;
     if (!urlCity) return;
     const trimmed = urlCity.trim();
     if (!trimmed) return;
@@ -109,13 +109,13 @@ export function OnboardingWizard() {
       ? urlTopicsRaw.split(",").map((t) => t.trim()).filter(Boolean)
       : [];
 
-    const match = supportedCities.find(
+    const match = supportedRegions.find(
       (c) => c.toLowerCase() === trimmed.toLowerCase(),
     );
     if (match) {
       updateState({
-        city: match,
-        cityRequest: null,
+        region: match,
+        regionRequest: null,
         topics: urlTopics,
       });
       setMode("subscribe");
@@ -124,8 +124,8 @@ export function OnboardingWizard() {
       else setStep(2);
     } else {
       updateState({
-        city: "",
-        cityRequest: { city: trimmed },
+        region: "",
+        regionRequest: { region: trimmed },
         topics: urlTopics,
       });
       setMode("request");
@@ -134,8 +134,8 @@ export function OnboardingWizard() {
 
     router.replace("/local/onboarding", { scroll: false });
   }, [
-    citiesLoading,
-    supportedCities,
+    regionsLoading,
+    supportedRegions,
     urlCity,
     searchParams,
     updateState,
@@ -144,7 +144,7 @@ export function OnboardingWizard() {
     router,
   ]);
 
-  // Request-flow OAuth return: cookie carries the requested city. We land on
+  // Request-flow OAuth return: cookie carries the requested region. We land on
   // /local/onboarding post-auth; read the cookie, auto-submit the waitlist,
   // and advance to the alternatives step. One-shot via ref.
   useEffect(() => {
@@ -152,24 +152,24 @@ export function OnboardingWizard() {
     if (!user?.email) return;
     const pending = readPendingAction();
     if (!pending || pending.type !== "request") return;
-    if (!pending.city) {
+    if (!pending.region) {
       clearPendingAction();
       return;
     }
     requestCookieHandledRef.current = true;
 
     updateState({
-      city: "",
-      cityRequest: { city: pending.city },
+      region: "",
+      regionRequest: { region: pending.region },
     });
     setMode("request");
     setStep(2);
-    setAutoKickoffLabel(`Adding ${pending.city} to your waitlist…`);
+    setAutoKickoffLabel(`Adding ${pending.region} to your waitlist…`);
 
     (async () => {
       try {
         const result = await submitRegionWaitlist({
-          city: pending.city,
+          region: pending.region,
           voterEmail: user.email!,
           referralCode: pending.referralCode || undefined,
         });
@@ -223,9 +223,9 @@ export function OnboardingWizard() {
         writePendingAction({
           type: "subscribe",
           plan,
-          city: state.city,
+          region: state.region,
           topics: state.topics,
-          cityRequest: state.cityRequest,
+          regionRequest: state.regionRequest,
           referralCode: referralCode || null,
         });
         const supabase = createSupabaseBrowserClient();
@@ -257,9 +257,9 @@ export function OnboardingWizard() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             plan,
-            city: state.city,
+            region: state.region,
             topics: state.topics,
-            cityRequest: state.cityRequest,
+            regionRequest: state.regionRequest,
             referralCode: referralCode || undefined,
           }),
         });
@@ -301,8 +301,8 @@ export function OnboardingWizard() {
   );
 
   const handleCityContinue = useCallback(
-    (cityWasSupported: boolean) => {
-      const nextMode: OnboardingMode = cityWasSupported ? "subscribe" : "request";
+    (regionWasSupported: boolean) => {
+      const nextMode: OnboardingMode = regionWasSupported ? "subscribe" : "request";
       setMode(nextMode);
       setStep(2);
     },
@@ -318,8 +318,8 @@ export function OnboardingWizard() {
   }, [setStep]);
 
   const handlePickAlternative = useCallback(
-    (city: string) => {
-      updateState({ city, cityRequest: null });
+    (region: string) => {
+      updateState({ region, regionRequest: null });
       setMode("subscribe");
       setStep(2);
     },
@@ -374,8 +374,8 @@ export function OnboardingWizard() {
         {step === 1 && (
           <CityStep
             state={state}
-            supportedCities={supportedCities}
-            citiesLoading={citiesLoading}
+            supportedRegions={supportedRegions}
+            regionsLoading={regionsLoading}
             updateState={updateState}
             onContinue={handleCityContinue}
           />
@@ -406,7 +406,7 @@ export function OnboardingWizard() {
         {mode === "request" && step === 3 && (
           <AlternativeCitiesStep
             state={state}
-            supportedCities={supportedCities}
+            supportedRegions={supportedRegions}
             onPick={handlePickAlternative}
           />
         )}
@@ -426,9 +426,9 @@ export function OnboardingWizard() {
         open={showPaymentModal}
         onClose={() => setShowPaymentModal(false)}
         onSuccess={() => router.replace("/local")}
-        city={state.city}
+        region={state.region}
         topics={state.topics}
-        cityRequest={state.cityRequest}
+        regionRequest={state.regionRequest}
         referralCode={referralCode || null}
       />
 

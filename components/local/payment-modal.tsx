@@ -24,18 +24,18 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 interface PaymentFormProps {
   onSuccess: () => void;
   onError: (msg: string) => void;
-  city?: string;
+  region?: string;
   topics?: string[];
-  cityRequest?: { city: string } | null;
+  regionRequest?: { region: string } | null;
   referralCode?: string | null;
 }
 
 function PaymentForm({
   onSuccess,
   onError,
-  city,
+  region,
   topics,
-  cityRequest,
+  regionRequest,
   referralCode,
 }: PaymentFormProps) {
   const stripe = useStripe();
@@ -79,9 +79,9 @@ function PaymentForm({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             paymentMethodId,
-            city,
+            region,
             topics,
-            cityRequest,
+            regionRequest,
             referralCode,
           }),
         });
@@ -98,7 +98,7 @@ function PaymentForm({
         setSubmitting(false);
       }
     },
-    [stripe, elements, onSuccess, onError, city, topics, cityRequest, referralCode],
+    [stripe, elements, onSuccess, onError, region, topics, regionRequest, referralCode],
   );
 
   return (
@@ -132,9 +132,9 @@ export interface PaymentModalProps {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  city?: string;
+  region?: string;
   topics?: string[];
-  cityRequest?: { city: string } | null;
+  regionRequest?: { region: string } | null;
   referralCode?: string | null;
 }
 
@@ -142,9 +142,9 @@ export function PaymentModal({
   open,
   onClose,
   onSuccess,
-  city,
+  region,
   topics,
-  cityRequest,
+  regionRequest,
   referralCode,
 }: PaymentModalProps) {
   const [clientSecret, setClientSecret] = useState<string | null>(null);
@@ -228,9 +228,9 @@ export function PaymentModal({
               <PaymentForm
                 onSuccess={handleSuccess}
                 onError={setPaymentError}
-                city={city}
+                region={region}
                 topics={topics}
-                cityRequest={cityRequest}
+                regionRequest={regionRequest}
                 referralCode={referralCode}
               />
             </Elements>

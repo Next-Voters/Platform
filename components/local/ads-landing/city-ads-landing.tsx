@@ -26,7 +26,7 @@ import {
   Star,
   Trash2,
 } from "lucide-react";
-import { getSupportedCities } from "@/server-actions/get-supported-cities";
+import { getSupportedRegions } from "@/server-actions/get-supported-cities";
 
 export type CoverageTierKind = "city" | "state" | "country";
 
@@ -56,7 +56,7 @@ export interface EmailTopic {
 }
 
 export interface CityAdsLandingProps {
-  /** Canonical city names from the supported_cities table we'd accept as a match
+  /** Canonical region names from the regions table we'd accept as a match
    *  (case-insensitive). If none match, we fall back to the first entry as the
    *  `?city=` param, which lands the user in the waitlist/request flow. */
   cityAliases: string[];
@@ -142,12 +142,12 @@ export function CityAdsLanding({
     return () => clearInterval(id);
   }, [heroVariant, rotatingPlaces.length]);
 
-  // Resolve the canonical supported_cities row matching any of our aliases so
+  // Resolve the canonical regions row matching any of our aliases so
   // the onboarding wizard lands on subscribe-step-2 instead of request mode.
   // If no match is found, we still let the user through with the first alias;
   // the wizard will put them in the waitlist flow gracefully.
   useEffect(() => {
-    getSupportedCities()
+    getSupportedRegions()
       .then((list) => {
         const match = list.find((c) => aliasesLower.includes(c.toLowerCase()));
         setResolvedCity(match ?? cityAliases[0] ?? cityDisplay);

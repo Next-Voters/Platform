@@ -25,16 +25,16 @@ export async function POST(request: NextRequest) {
   }
 
   // Onboarding data — present for new Pro signups, absent for upgrades (already saved in DB).
-  const rawCity = typeof body.city === 'string' ? body.city.trim() : '';
+  const rawRegion = typeof body.region === 'string' ? body.region.trim() : '';
   const rawTopics: string[] = Array.isArray(body.topics)
     ? body.topics.filter((t: unknown): t is string => typeof t === 'string' && t.trim().length > 0).map((t: string) => t.trim())
     : [];
 
-  const cityRequest = body.cityRequest as { city?: unknown } | null | undefined;
-  let cityRequestMeta = '';
-  if (cityRequest && typeof cityRequest === 'object') {
-    const c = typeof cityRequest.city === 'string' ? cityRequest.city.trim() : '';
-    if (c) cityRequestMeta = c;
+  const regionRequest = body.regionRequest as { region?: unknown } | null | undefined;
+  let regionRequestMeta = '';
+  if (regionRequest && typeof regionRequest === 'object') {
+    const r = typeof regionRequest.region === 'string' ? regionRequest.region.trim() : '';
+    if (r) regionRequestMeta = r;
   }
 
   const referralCode = typeof body.referralCode === 'string' ? body.referralCode.trim() : '';
@@ -103,15 +103,15 @@ export async function POST(request: NextRequest) {
     }
 
     // No existing subscription — create a fresh Pro subscription.
-    const isNewSignup = rawCity && rawTopics.length > 0;
+    const isNewSignup = rawRegion && rawTopics.length > 0;
 
     const metadata: Record<string, string> = {
       contact: user.email,
       plan: 'pro',
-      ...(rawCity && { city: rawCity }),
+      ...(rawRegion && { region: rawRegion }),
       ...(rawTopics.length > 0 && { topics: rawTopics.join('|') }),
     };
-    if (cityRequestMeta) metadata.city_request = cityRequestMeta;
+    if (regionRequestMeta) metadata.region_request = regionRequestMeta;
     if (referralCode) metadata.referral_code = referralCode;
 
     const stripeSub = await stripe.subscriptions.create({
@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
       stripe_subscription_id: stripeSub.id,
       stripe_status: stripeSub.status,
       tier: 'pro',
-      ...(rawCity && { city: rawCity }),
+      ...(rawRegion && { region: rawRegion }),
     };
     if (periodEnd) {
       upsertPayload.stripe_period_end = new Date(periodEnd * 1000).toISOString();
@@ -173,10 +173,10 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Notify admin if the user requested an unsupported city.
-      if (cityRequestMeta) {
+      // Notify admin if the user requested an unsupported region.
+      if (regionRequestMeta) {
         await submitRegionWaitlist({
-          city: cityRequestMeta,
+          region: regionRequestMeta,
           voterEmail: user.email,
           referralCode: referralCode || undefined,
         });

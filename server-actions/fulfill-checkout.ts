@@ -5,14 +5,14 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin"
 import { getStripe } from "@/lib/stripe"
 import { submitRegionWaitlist } from "@/server-actions/request-region"
 
-function parseCityRequest(raw: string | undefined): { city: string } | null {
+function parseRegionRequest(raw: string | undefined): { region: string } | null {
   if (!raw) return null
   const trimmed = raw.trim()
   if (!trimmed) return null
-  // Legacy in-flight sessions encoded this as "country|state|city" — keep only the city segment.
-  const city = trimmed.includes("|") ? trimmed.split("|").pop()!.trim() : trimmed
-  if (!city) return null
-  return { city }
+  // Legacy in-flight sessions encoded this as "country|state|city" — keep only the last segment.
+  const region = trimmed.includes("|") ? trimmed.split("|").pop()!.trim() : trimmed
+  if (!region) return null
+  return { region }
 }
 
 export async function fulfillCheckout(sessionId: string): Promise<{ success: boolean; error?: string }> {
@@ -44,7 +44,7 @@ export async function fulfillCheckout(sessionId: string): Promise<{ success: boo
   }
 
   const metadata = session.metadata ?? {}
-  const city = typeof metadata.city === "string" ? metadata.city.trim() : ""
+  const region = typeof metadata.region === "string" ? metadata.region.trim() : ""
   const topicsRaw = typeof metadata.topics === "string" ? metadata.topics : ""
   const topics = topicsRaw
     .split("|")
@@ -56,7 +56,7 @@ export async function fulfillCheckout(sessionId: string): Promise<{ success: boo
   // Check whether we've already fulfilled this session so we can skip
   // non-idempotent side effects (admin emails, referral conversions).
   // The upsert itself always runs — it's idempotent and ensures the
-  // webhook-created row (which may lack city / stripe_period_end) gets
+  // webhook-created row (which may lack region / stripe_period_end) gets
   // the complete data from the checkout session.
   const { data: existingRow } = await admin
     .from("subscriptions")
@@ -92,7 +92,7 @@ export async function fulfillCheckout(sessionId: string): Promise<{ success: boo
     stripe_status: "active",
     tier: plan,
   }
-  if (city) upsertPayload.city = city
+  if (region) upsertPayload.region = region
   if (periodEnd) upsertPayload.stripe_period_end = periodEnd
 
   const { error } = await admin
@@ -129,11 +129,11 @@ export async function fulfillCheckout(sessionId: string): Promise<{ success: boo
   // duplicate vote counts and referral conversions.
   if (alreadyFulfilled) return { success: true }
 
-  const cityRequest = parseCityRequest(metadata.city_request)
-  if (cityRequest) {
+  const regionRequest = parseRegionRequest(metadata.region_request)
+  if (regionRequest) {
     const referralCode = typeof metadata.referral_code === "string" ? metadata.referral_code.trim() : ""
     await submitRegionWaitlist({
-      city: cityRequest.city,
+      region: regionRequest.region,
       voterEmail: user.email,
       referralCode: referralCode || undefined,
     })

@@ -6,10 +6,10 @@ import { OnboardingState } from "./types";
 
 interface Props {
   state: OnboardingState;
-  supportedCities: string[];
-  citiesLoading: boolean;
+  supportedRegions: string[];
+  regionsLoading: boolean;
   updateState: (patch: Partial<OnboardingState>) => void;
-  onContinue: (cityWasSupported: boolean) => void;
+  onContinue: (regionWasSupported: boolean) => void;
 }
 
 interface PhotonSuggestion {
@@ -20,13 +20,13 @@ interface PhotonSuggestion {
 
 export function CityStep({
   state,
-  supportedCities,
-  citiesLoading,
+  supportedRegions,
+  regionsLoading,
   updateState,
   onContinue,
 }: Props) {
   const [input, setInput] = useState(
-    state.city || state.cityRequest?.city || "",
+    state.region || state.regionRequest?.region || "",
   );
   const [error, setError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<PhotonSuggestion[]>([]);
@@ -95,14 +95,14 @@ export function CityStep({
       setError("Please enter your city.");
       return;
     }
-    const match = supportedCities.find(
+    const match = supportedRegions.find(
       (c) => c.toLowerCase() === trimmed.toLowerCase(),
     );
     if (match) {
-      updateState({ city: match, cityRequest: null });
+      updateState({ region: match, regionRequest: null });
       onContinue(true);
     } else {
-      updateState({ city: "", cityRequest: { city: trimmed } });
+      updateState({ region: "", regionRequest: { region: trimmed } });
       onContinue(false);
     }
   };
@@ -150,7 +150,7 @@ export function CityStep({
               }
             }}
             className="flex-1 min-w-0 px-3 py-3 text-[14.5px] text-gray-950 placeholder:text-gray-400 focus:outline-none"
-            disabled={citiesLoading}
+            disabled={regionsLoading}
           />
         </div>
 
@@ -200,10 +200,10 @@ export function CityStep({
       <button
         type="button"
         onClick={handleContinue}
-        disabled={citiesLoading || !input.trim()}
+        disabled={regionsLoading || !input.trim()}
         className="mt-8 w-full sm:w-auto sm:min-w-[240px] inline-flex items-center justify-center min-h-[48px] px-8 py-3 text-[15.5px] font-bold text-white bg-brand rounded-xl hover:bg-brand-hover transition-colors shadow-sm disabled:opacity-50"
       >
-        {citiesLoading ? "Loading…" : "Continue"}
+        {regionsLoading ? "Loading…" : "Continue"}
       </button>
     </div>
   );

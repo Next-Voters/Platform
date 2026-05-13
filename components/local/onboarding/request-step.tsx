@@ -22,7 +22,7 @@ export function RequestStep({ state, referralCode, onContinue }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const city = state.cityRequest?.city ?? "";
+  const city = state.regionRequest?.region ?? "";
 
   const handleAuthedSubmit = async () => {
     setError(null);
@@ -33,7 +33,7 @@ export function RequestStep({ state, referralCode, onContinue }: Props) {
     setSubmitting(true);
     try {
       const result = await submitRegionWaitlist({
-        city,
+        region: city,
         voterEmail: user.email,
         referralCode: referralCode || undefined,
       });
@@ -55,7 +55,7 @@ export function RequestStep({ state, referralCode, onContinue }: Props) {
     // Carry requested city via cookie (see lib/pending-action.ts for why).
     writePendingAction({
       type: "request",
-      city,
+      region: city,
       referralCode: referralCode || null,
     });
     const supabase = createSupabaseBrowserClient();
