@@ -273,9 +273,6 @@ export function NewsletterHero() {
               {error}
             </p>
           )}
-          <p className="mt-4 text-center text-[12.5px] text-gray-500">
-            Free. Nonpartisan. No newsletter spam.
-          </p>
         </form>
       </div>
     </section>
