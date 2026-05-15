@@ -39,6 +39,20 @@ function NVLocalInner() {
 
   const isPostCheckout = searchParams.get('checkout') === 'success';
   const sessionId = searchParams.get('session_id');
+  const conversionFiredRef = useRef(false);
+
+  // Fire Google Ads conversion event after successful checkout.
+  useEffect(() => {
+    if (!isPostCheckout || conversionFiredRef.current) return;
+    conversionFiredRef.current = true;
+    if (typeof window.gtag === 'function') {
+      window.gtag('event', 'conversion', {
+        send_to: 'AW-18024404483/iVVXCP-BpZUcEIOs2pJD',
+        value: 1.0,
+        currency: 'USD',
+      });
+    }
+  }, [isPostCheckout]);
 
   // Read the pending-action cookie once on mount.
   useEffect(() => {

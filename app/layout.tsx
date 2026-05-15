@@ -1,6 +1,6 @@
 import { type Metadata, type Viewport } from 'next'
 import { Plus_Jakarta_Sans, Dancing_Script } from 'next/font/google'
-import Head from 'next/head'
+import Script from 'next/script'
 import './globals.css'
 import Root from '@/components/common/root'
 import { AuthProvider } from '@/wrappers/AuthProvider'
@@ -89,8 +89,11 @@ export default function RootLayout({
       lang="en"
       className={`${plusJakartaSans.variable} ${dancingScript.variable}`}
     >
-      <Head>
-        <script async src="https://www.googletagmanager.com/gtag/js?id=AW-18024404483"></script>
+      <body className="antialiased">
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=AW-18024404483"
+          strategy="afterInteractive"
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -101,8 +104,6 @@ export default function RootLayout({
             `,
           }}
         />
-      </Head>
-      <body className="antialiased">
         <AuthProvider>
           <SubscriptionProvider>
             <Root>{children}</Root>
