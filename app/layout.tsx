@@ -92,9 +92,9 @@ export default function RootLayout({
       <body className="antialiased">
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=AW-18024404483"
-          strategy="beforeInteractive"
+          strategy="afterInteractive"
         />
-        <Script id="gtag-init" strategy="beforeInteractive">
+        <Script id="gtag-init" strategy="afterInteractive">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
