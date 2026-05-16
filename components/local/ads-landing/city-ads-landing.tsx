@@ -155,6 +155,18 @@ export function CityAdsLanding({
       .catch(() => setResolvedCity(cityAliases[0] ?? cityDisplay))
       .finally(() => setCitiesLoading(false));
   }, [aliasesLower, cityAliases, cityDisplay]);
+    // Fire Google Ads "Interest" page-view conversion on mount.
+    // This ensures the conversion registers even on SPA navigation to the ads landing page.
+    // Queues via dataLayer so it fires once gtag.js loads (afterInteractive strategy).
+    useEffect(() => {
+          window.dataLayer = window.dataLayer || [];
+          if (typeof window.gtag !== 'function') {
+                  window.gtag = function (...args: unknown[]) {
+                            (window.dataLayer as unknown[]).push(args);
+                  };
+          }
+          window.gtag('config', 'AW-18024404483');
+    }, []);
 
   const handleStart = () => {
     if (citiesLoading || redirecting) return;
