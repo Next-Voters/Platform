@@ -12,7 +12,7 @@ export type SupportedRegion = {
 export async function getSupportedRegions(): Promise<string[]> {
   const supabase = await createSupabaseServerClient()
   const { data } = await supabase
-    .from("regions")
+    .from("supported_regions")
     .select("region")
     .order("region")
 
@@ -22,7 +22,7 @@ export async function getSupportedRegions(): Promise<string[]> {
 export async function getSupportedRegionsWithHierarchy(): Promise<SupportedRegion[]> {
   const supabase = await createSupabaseServerClient()
   const { data } = await supabase
-    .from("regions")
+    .from("supported_regions")
     .select("region, type, parent_region")
     .order("region")
 
