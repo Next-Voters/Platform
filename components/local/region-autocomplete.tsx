@@ -6,10 +6,11 @@ import { MapPin, Search } from "lucide-react";
 interface PhotonSuggestion {
   label: string;
   name: string;
+  state: string | null;
   country: string | null;
 }
 
-interface CityAutocompleteProps {
+interface RegionAutocompleteProps {
   value: string;
   onValueChange: (value: string, pickedFromSuggestions: boolean) => void;
   onSubmit?: () => void;
@@ -20,7 +21,7 @@ interface CityAutocompleteProps {
   autoFocus?: boolean;
 }
 
-export function CityAutocomplete({
+export function RegionAutocomplete({
   value,
   onValueChange,
   onSubmit,
@@ -29,16 +30,16 @@ export function CityAutocomplete({
   inputId,
   variant = "wizard",
   autoFocus = false,
-}: CityAutocompleteProps) {
+}: RegionAutocompleteProps) {
   const [suggestions, setSuggestions] = useState<PhotonSuggestion[]>([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
-  const [pickedCity, setPickedCity] = useState("");
+  const [pickedRegion, setPickedCity] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const trimmed = value.trim();
-    if (trimmed.length < 2 || trimmed === pickedCity) {
+    if (trimmed.length < 2 || trimmed === pickedRegion) {
       setSuggestions([]);
       return;
     }
@@ -47,15 +48,15 @@ export function CityAutocomplete({
       setSuggestionsLoading(true);
       try {
         const res = await fetch(
-          `/api/cities/search?q=${encodeURIComponent(trimmed)}`,
+          `/api/regions/search?q=${encodeURIComponent(trimmed)}`,
           { signal: controller.signal },
         );
         if (!res.ok) {
           setSuggestions([]);
           return;
         }
-        const data = (await res.json()) as { cities?: PhotonSuggestion[] };
-        setSuggestions(data.cities ?? []);
+        const data = (await res.json()) as { regions?: PhotonSuggestion[] };
+        setSuggestions(data.regions ?? []);
       } catch (err) {
         if ((err as Error).name !== "AbortError") setSuggestions([]);
       } finally {
@@ -66,7 +67,7 @@ export function CityAutocomplete({
       controller.abort();
       clearTimeout(timer);
     };
-  }, [value, pickedCity]);
+  }, [value, pickedRegion]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -158,7 +159,7 @@ export function CityAutocomplete({
             <li
               key={s.label}
               role="option"
-              aria-selected={pickedCity === s.name}
+              aria-selected={pickedRegion === s.name}
             >
               <button
                 type="button"

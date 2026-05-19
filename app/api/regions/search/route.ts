@@ -19,7 +19,7 @@ interface PhotonResponse {
 export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get('q')?.trim() ?? '';
   if (q.length < 2) {
-    return NextResponse.json({ cities: [] });
+    return NextResponse.json({ regions: [] });
   }
 
   const url = new URL('https://photon.komoot.io/api/');
@@ -34,26 +34,26 @@ export async function GET(request: NextRequest) {
       next: { revalidate: 3600 },
     });
     if (!res.ok) {
-      return NextResponse.json({ cities: [] });
+      return NextResponse.json({ regions: [] });
     }
     const data = (await res.json()) as PhotonResponse;
 
     const seen = new Set<string>();
-    const cities: Array<{ label: string; name: string; country: string | null }> = [];
+    const regions: Array<{ label: string; name: string; state: string | null; country: string | null }> = [];
     for (const feat of data.features ?? []) {
       const name = feat.properties?.name?.trim();
       if (!name) continue;
       const country = feat.properties?.country?.trim() || null;
-      const state = feat.properties?.state?.trim();
-      const key = `${name.toLowerCase()}|${country?.toLowerCase() ?? ''}`;
+      const state = feat.properties?.state?.trim() || null;
+      const key = `${name.toLowerCase()}|${state?.toLowerCase() ?? ''}|${country?.toLowerCase() ?? ''}`;
       if (seen.has(key)) continue;
       seen.add(key);
       const label = [name, state, country].filter(Boolean).join(', ');
-      cities.push({ label, name, country });
+      regions.push({ label, name, state, country });
     }
 
-    return NextResponse.json({ cities });
+    return NextResponse.json({ regions });
   } catch {
-    return NextResponse.json({ cities: [] });
+    return NextResponse.json({ regions: [] });
   }
 }

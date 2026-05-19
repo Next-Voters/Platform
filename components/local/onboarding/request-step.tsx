@@ -22,7 +22,7 @@ export function RequestStep({ state, referralCode, onContinue }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const city = state.regionRequest?.region ?? "";
+  const requestedRegion = state.regionRequest?.region ?? "";
 
   const handleAuthedSubmit = async () => {
     setError(null);
@@ -33,7 +33,7 @@ export function RequestStep({ state, referralCode, onContinue }: Props) {
     setSubmitting(true);
     try {
       const result = await submitRegionWaitlist({
-        region: city,
+        region: requestedRegion,
         voterEmail: user.email,
         referralCode: referralCode || undefined,
       });
@@ -52,10 +52,10 @@ export function RequestStep({ state, referralCode, onContinue }: Props) {
   const handleGoogleSignIn = async () => {
     setError(null);
     setSubmitting(true);
-    // Carry requested city via cookie (see lib/pending-action.ts for why).
+    // Carry requested region via cookie (see lib/pending-action.ts for why).
     writePendingAction({
       type: "request",
-      region: city,
+      region: requestedRegion,
       referralCode: referralCode || null,
     });
     const supabase = createSupabaseBrowserClient();
@@ -76,7 +76,7 @@ export function RequestStep({ state, referralCode, onContinue }: Props) {
     <div>
       <p className="text-[15px] text-gray-500 leading-relaxed mb-6">
         We don&rsquo;t cover{" "}
-        <span className="font-semibold text-gray-900">{city}</span> yet. Sign in
+        <span className="font-semibold text-gray-900">{requestedRegion}</span> yet. Sign in
         with Google and we&rsquo;ll email you the moment it launches.
       </p>
 
@@ -97,7 +97,7 @@ export function RequestStep({ state, referralCode, onContinue }: Props) {
           disabled={submitting}
           className="w-full sm:w-auto sm:min-w-[240px] inline-flex items-center justify-center min-h-[48px] px-8 py-3 text-[15.5px] font-bold text-white bg-brand rounded-xl hover:bg-brand-hover transition-colors shadow-sm disabled:opacity-50"
         >
-          {submitting ? "Adding you…" : `Notify me about ${city}`}
+          {submitting ? "Adding you…" : `Notify me about ${requestedRegion}`}
         </button>
       ) : (
         <button
@@ -139,17 +139,17 @@ export function RequestStep({ state, referralCode, onContinue }: Props) {
         No spam, no password. Unsubscribe any time.
       </p>
 
-      <ShareSection city={city} userEmail={user?.email ?? null} />
+      <ShareSection region={requestedRegion} userEmail={user?.email ?? null} />
     </div>
   );
 }
 
 interface ShareSectionProps {
-  city: string;
+  region: string;
   userEmail: string | null;
 }
 
-function ShareSection({ city, userEmail }: ShareSectionProps) {
+function ShareSection({ region, userEmail }: ShareSectionProps) {
   const [userReferralCode, setUserReferralCode] = useState<string | null>(null);
   const [voteCount, setVoteCount] = useState<number>(0);
   const [linkCopied, setLinkCopied] = useState(false);
@@ -173,12 +173,12 @@ function ShareSection({ city, userEmail }: ShareSectionProps) {
   }, [userEmail]);
 
   useEffect(() => {
-    if (!city) {
+    if (!region) {
       setVoteCount(0);
       return;
     }
     let cancelled = false;
-    getRegionVoteCount(city)
+    getRegionVoteCount(region)
       .then((count) => {
         if (!cancelled) setVoteCount(count);
       })
@@ -188,12 +188,12 @@ function ShareSection({ city, userEmail }: ShareSectionProps) {
     return () => {
       cancelled = true;
     };
-  }, [city]);
+  }, [region]);
 
   const shareUrl = userReferralCode
     ? buildReferralLink(userReferralCode, "/request-region")
     : "https://nextvoters.com/request-region";
-  const shareMessage = `Help bring Next Voters to ${city} — add your name: ${shareUrl}`;
+  const shareMessage = `Help bring Next Voters to ${region} — add your name: ${shareUrl}`;
 
   const handleCopyLink = async () => {
     try {
@@ -214,10 +214,10 @@ function ShareSection({ city, userEmail }: ShareSectionProps) {
   return (
     <div className="mt-8 pt-6 border-t border-gray-200">
       <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2">
-        Help get {city} launched
+        Help get {region} launched
       </p>
       <p className="text-[13px] text-gray-500 mb-4">
-        We prioritize cities with the most interest. Share with neighbors who&rsquo;d use Next Voters.
+        We prioritize regions with the most interest. Share with neighbors who&rsquo;d use Next Voters.
       </p>
 
       {voteCount >= 2 && (
@@ -256,7 +256,7 @@ function ShareSection({ city, userEmail }: ShareSectionProps) {
           href={twitterUrl}
           target="_blank"
           rel="noopener noreferrer"
-          aria-label={`Share on X about ${city}`}
+          aria-label={`Share on X about ${region}`}
           className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
         >
           <svg
@@ -273,7 +273,7 @@ function ShareSection({ city, userEmail }: ShareSectionProps) {
           href={facebookUrl}
           target="_blank"
           rel="noopener noreferrer"
-          aria-label={`Share on Facebook about ${city}`}
+          aria-label={`Share on Facebook about ${region}`}
           className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
         >
           <svg
@@ -290,7 +290,7 @@ function ShareSection({ city, userEmail }: ShareSectionProps) {
           href={whatsappUrl}
           target="_blank"
           rel="noopener noreferrer"
-          aria-label={`Share on WhatsApp about ${city}`}
+          aria-label={`Share on WhatsApp about ${region}`}
           className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
         >
           <svg
@@ -305,7 +305,7 @@ function ShareSection({ city, userEmail }: ShareSectionProps) {
         </a>
         <a
           href={smsUrl}
-          aria-label={`Share ${city} via text message`}
+          aria-label={`Share ${region} via text message`}
           className="inline-flex items-center justify-center w-10 h-10 rounded-full border border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
         >
           <MessageCircle className="w-4 h-4" aria-hidden="true" />
@@ -313,7 +313,7 @@ function ShareSection({ city, userEmail }: ShareSectionProps) {
       </div>
 
       <p className="mt-4 text-[12px] text-gray-400">
-        Every ask moves {city} up our priority list.
+        Every ask moves {region} up our priority list.
       </p>
     </div>
   );

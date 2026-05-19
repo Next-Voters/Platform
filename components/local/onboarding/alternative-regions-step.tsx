@@ -10,9 +10,9 @@ interface Props {
   onPick: (region: string) => void;
 }
 
-export function AlternativeCitiesStep({ state, supportedRegions, onPick }: Props) {
+export function AlternativeRegionsStep({ state, supportedRegions, onPick }: Props) {
   const [skipped, setSkipped] = useState(false);
-  const requestedCity = state.regionRequest?.region ?? "your city";
+  const requestedRegion = state.regionRequest?.region ?? "your region";
 
   if (skipped) {
     return (
@@ -25,7 +25,7 @@ export function AlternativeCitiesStep({ state, supportedRegions, onPick }: Props
         </p>
         <p className="text-[14.5px] text-gray-500 leading-relaxed mb-6">
           We&rsquo;ll email you the moment{" "}
-          <span className="font-semibold text-gray-900">{requestedCity}</span>{" "}
+          <span className="font-semibold text-gray-900">{requestedRegion}</span>{" "}
           launches.
         </p>
         <a
@@ -41,23 +41,23 @@ export function AlternativeCitiesStep({ state, supportedRegions, onPick }: Props
   return (
     <div>
       <p className="text-[15px] text-gray-500 leading-relaxed mb-6">
-        Want updates for a city we already cover while you wait for{" "}
-        <span className="font-semibold text-gray-900">{requestedCity}</span>?
+        Want updates for a region we already cover while you wait for{" "}
+        <span className="font-semibold text-gray-900">{requestedRegion}</span>?
       </p>
 
       <div className="space-y-2 mb-6">
         {supportedRegions.length === 0 ? (
-          <p className="text-[13.5px] text-gray-400">No other cities available yet.</p>
+          <p className="text-[13.5px] text-gray-400">No other regions available yet.</p>
         ) : (
-          supportedRegions.map((city) => (
+          supportedRegions.map((region) => (
             <button
-              key={city}
+              key={region}
               type="button"
-              onClick={() => onPick(city)}
+              onClick={() => onPick(region)}
               className="w-full flex items-center gap-3 px-4 py-3 text-left text-[14.5px] font-semibold text-gray-800 bg-white border border-gray-200 rounded-xl hover:border-brand hover:bg-brand/5 transition-colors"
             >
               <MapPin className="w-4 h-4 text-gray-400 shrink-0" aria-hidden="true" />
-              {city}
+              {region}
             </button>
           ))
         )}
@@ -68,7 +68,7 @@ export function AlternativeCitiesStep({ state, supportedRegions, onPick }: Props
         onClick={() => setSkipped(true)}
         className="text-[13.5px] font-medium text-gray-500 hover:text-gray-900 transition-colors"
       >
-        No thanks — just notify me when {requestedCity} launches.
+        No thanks — just notify me when {requestedRegion} launches.
       </button>
     </div>
   );

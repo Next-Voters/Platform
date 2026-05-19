@@ -10,28 +10,28 @@ import {
   readPendingAction,
   writePendingAction,
 } from "@/lib/pending-action";
-import { getSupportedRegions } from "@/server-actions/get-supported-cities";
+import { getSupportedRegionsWithHierarchy, type SupportedRegion } from "@/server-actions/get-supported-regions";
 import { submitRegionWaitlist } from "@/server-actions/request-region";
 import { syncSubscriptionFromStripe } from "@/server-actions/sync-subscription";
-import { CityStep } from "./city-step";
+import { RegionStep } from "./region-step";
 import { TopicsStep } from "./topics-step";
 import { PlanStep } from "./plan-step";
 import { RequestStep } from "./request-step";
-import { AlternativeCitiesStep } from "./alternative-cities-step";
+import { AlternativeRegionsStep } from "./alternative-regions-step";
 import { OnboardingMode, OnboardingStep } from "./types";
 import { useOnboardingState } from "./use-onboarding-state";
 import { PaymentModal } from "@/components/local/payment-modal";
 
 const SUBSCRIBE_LABELS: Record<OnboardingStep, string> = {
-  1: "City",
+  1: "Region",
   2: "Topics",
   3: "Plan",
 };
 
 const REQUEST_LABELS: Record<1 | 2 | 3, string> = {
-  1: "City",
+  1: "Region",
   2: "Request",
-  3: "Other cities?",
+  3: "Other regions?",
 };
 
 export function OnboardingWizard() {
@@ -54,7 +54,7 @@ export function OnboardingWizard() {
     setReferralCode,
   } = useOnboardingState();
 
-  const [supportedRegions, setSupportedRegions] = useState<string[]>([]);
+  const [supportedRegions, setSupportedRegions] = useState<SupportedRegion[]>([]);
   const [regionsLoading, setRegionsLoading] = useState(true);
   const [checkoutError, setCheckoutError] = useState<string | null>(
     errorParam === "oauth_failed"
@@ -71,7 +71,7 @@ export function OnboardingWizard() {
   const requestCookieHandledRef = useRef(false);
 
   useEffect(() => {
-    getSupportedRegions()
+    getSupportedRegionsWithHierarchy()
       .then(setSupportedRegions)
       .finally(() => setRegionsLoading(false));
   }, []);
@@ -110,11 +110,11 @@ export function OnboardingWizard() {
       : [];
 
     const match = supportedRegions.find(
-      (c) => c.toLowerCase() === trimmed.toLowerCase(),
+      (r) => r.region.toLowerCase() === trimmed.toLowerCase(),
     );
     if (match) {
       updateState({
-        region: match,
+        region: match.region,
         regionRequest: null,
         topics: urlTopics,
       });
@@ -191,7 +191,7 @@ export function OnboardingWizard() {
   const totalSteps = 3;
   const stepLabel =
     mode === "request"
-      ? REQUEST_LABELS[step as 1 | 2 | 3] ?? "City"
+      ? REQUEST_LABELS[step as 1 | 2 | 3] ?? "Region"
       : SUBSCRIBE_LABELS[step];
 
   const goBack = useCallback(() => {
@@ -300,7 +300,7 @@ export function OnboardingWizard() {
     [state, referralCode, user, setPendingPlan, router],
   );
 
-  const handleCityContinue = useCallback(
+  const handleRegionContinue = useCallback(
     (regionWasSupported: boolean) => {
       const nextMode: OnboardingMode = regionWasSupported ? "subscribe" : "request";
       setMode(nextMode);
@@ -372,12 +372,12 @@ export function OnboardingWizard() {
         </h1>
 
         {step === 1 && (
-          <CityStep
+          <RegionStep
             state={state}
             supportedRegions={supportedRegions}
             regionsLoading={regionsLoading}
             updateState={updateState}
-            onContinue={handleCityContinue}
+            onContinue={handleRegionContinue}
           />
         )}
 
@@ -404,9 +404,11 @@ export function OnboardingWizard() {
           />
         )}
         {mode === "request" && step === 3 && (
-          <AlternativeCitiesStep
+          <AlternativeRegionsStep
             state={state}
-            supportedRegions={supportedRegions}
+            supportedRegions={supportedRegions
+              .filter((r) => r.type === "city")
+              .map((r) => r.region)}
             onPick={handlePickAlternative}
           />
         )}

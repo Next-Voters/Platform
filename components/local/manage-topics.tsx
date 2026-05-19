@@ -7,8 +7,8 @@ import { useSubscription } from "@/hooks/use-subscription";
 import { TierBadge } from "@/components/local/tier-badge";
 import { getUserTopics } from "@/server-actions/get-user-topics";
 import { updateUserTopics } from "@/server-actions/update-user-topics";
-import { getSupportedRegions, getUserRegion } from "@/server-actions/get-supported-cities";
-import { updateUserRegion } from "@/server-actions/update-user-city";
+import { getSupportedRegions, getUserRegion } from "@/server-actions/get-supported-regions";
+import { updateUserRegion } from "@/server-actions/update-user-region";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function ManageTopics({ onSaved }: { onSaved?: () => void } = {}) {

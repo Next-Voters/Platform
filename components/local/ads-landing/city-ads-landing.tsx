@@ -26,7 +26,7 @@ import {
   Star,
   Trash2,
 } from "lucide-react";
-import { getSupportedRegions } from "@/server-actions/get-supported-cities";
+import { getSupportedRegions } from "@/server-actions/get-supported-regions";
 
 export type CoverageTierKind = "city" | "state" | "country";
 

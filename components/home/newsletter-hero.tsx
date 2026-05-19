@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
-import { CityAutocomplete } from "@/components/local/city-autocomplete";
+import { RegionAutocomplete } from "@/components/local/region-autocomplete";
 
 const FALLBACK_PLACEHOLDER_CITY = "Vancouver";
 
@@ -243,7 +243,7 @@ export function NewsletterHero() {
           <div className="relative rounded-2xl bg-white border border-gray-200 shadow-[0_1px_0_rgba(17,17,17,0.04),0_24px_48px_-20px_rgba(17,17,17,0.14)] p-2 transition-shadow focus-within:shadow-[0_0_0_4px_rgba(235,34,64,0.08),0_24px_48px_-20px_rgba(17,17,17,0.2)]">
             <div className="flex items-stretch gap-2">
               <div className="flex-1 min-w-0">
-                <CityAutocomplete
+                <RegionAutocomplete
                   variant="hero"
                   value={city}
                   onValueChange={(next) => {
