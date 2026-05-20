@@ -221,7 +221,7 @@ export function NewsletterHero() {
 
       <div className="relative max-w-[1100px] mx-auto px-6 pt-20 pb-32 md:pt-28 md:pb-44">
         <h1 className="text-center text-[44px] sm:text-[56px] md:text-[68px] font-bold tracking-tight text-gray-900 leading-[1.15] max-w-[900px] mx-auto">
-          Catch up with your local legislation in{" "}
+          Catch up with current legislation in{" "}
           <span className="inline-block pr-1 pb-1 italic font-extrabold bg-gradient-to-br from-red-500 via-red-500 to-rose-600 bg-clip-text text-transparent">
             minutes
           </span>
