@@ -13,7 +13,7 @@ interface RootProps {
 }
 
 // Routes where the footer should not appear
-const NO_FOOTER_PATTERNS = ["/chat", "/subscription"];
+const NO_FOOTER_PATTERNS = ["/chat", "/subscription", "/pricing"];
 
 // Routes where the global header should not appear. Used on dedicated
 // ad-traffic landings so paid-traffic visitors land on a clean page with no

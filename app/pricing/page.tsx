@@ -164,6 +164,16 @@ export default function PricingPage() {
         </p>
       </section>
 
+      {/* Footer */}
+      <footer className="border-t border-gray-200/60 bg-page">
+        <div className="max-w-[1100px] mx-auto px-6 py-10 flex flex-col sm:flex-row items-center justify-between gap-4 text-[12.5px] text-gray-400">
+          <span className="font-semibold text-gray-600 tracking-tight text-[13px]">
+            Next Voters
+          </span>
+          <span>© {new Date().getFullYear()} Next Voters. All rights reserved.</span>
+        </div>
+      </footer>
+
     </div>
   );
 }
