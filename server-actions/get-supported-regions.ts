@@ -43,3 +43,26 @@ export async function getUserRegion(): Promise<string | null> {
 
   return data?.region ?? null
 }
+
+/** Fetch all regions the current user is subscribed to, with type info. */
+export async function getUserSubscriptionRegions(): Promise<SupportedRegion[]> {
+  const supabase = await createSupabaseServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user?.email) return []
+
+  const { data: rows } = await supabase
+    .from("subscription_regions")
+    .select("region")
+    .eq("subscription_id", user.email)
+
+  if (!rows || rows.length === 0) return []
+
+  const regionNames = rows.map((r) => r.region)
+  const { data: regionDetails } = await supabase
+    .from("supported_regions")
+    .select("region, type, parent_region")
+    .in("region", regionNames)
+
+  return (regionDetails as SupportedRegion[] | null) ?? []
+}

@@ -7,7 +7,7 @@ import { useSubscription } from "@/hooks/use-subscription";
 import { TierBadge } from "@/components/local/tier-badge";
 import { getUserTopics } from "@/server-actions/get-user-topics";
 import { updateUserTopics } from "@/server-actions/update-user-topics";
-import { getSupportedRegionsWithHierarchy, getUserRegion, type SupportedRegion } from "@/server-actions/get-supported-regions";
+import { getSupportedRegionsWithHierarchy, getUserRegion, getUserSubscriptionRegions, type SupportedRegion } from "@/server-actions/get-supported-regions";
 import { updateUserRegion } from "@/server-actions/update-user-region";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -22,11 +22,13 @@ export function ManageTopics({ onSaved }: { onSaved?: () => void } = {}) {
 
   const [regions, setRegions] = useState<SupportedRegion[]>([]);
   const [selectedRegion, setSelectedRegion] = useState("");
+  const [subscribedRegions, setSubscribedRegions] = useState<SupportedRegion[]>([]);
   const [regionError, setRegionError] = useState("");
 
   useEffect(() => {
     getSupportedRegionsWithHierarchy().then(setRegions);
     getUserRegion().then((region) => { if (region) setSelectedRegion(region); });
+    getUserSubscriptionRegions().then(setSubscribedRegions);
   }, []);
 
   useEffect(() => {
@@ -71,6 +73,8 @@ export function ManageTopics({ onSaved }: { onSaved?: () => void } = {}) {
       setSavedMsg(error);
     } else {
       setSavedMsg("Saved!");
+      // Refetch subscription regions so the display reflects the new primary region.
+      getUserSubscriptionRegions().then(setSubscribedRegions);
       onSaved?.();
     }
   };
@@ -96,13 +100,39 @@ export function ManageTopics({ onSaved }: { onSaved?: () => void } = {}) {
           Select up to 3 topics. We&rsquo;ll only send you updates related to your choices.
         </p>
 
-        {/* City selector */}
+        {/* Region display */}
         <div className="mb-8">
           <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">
             Region
           </p>
-          <div className="flex items-center gap-3">
-            <Globe className="h-4 w-4 text-gray-400 shrink-0" />
+          {subscribedRegions.length > 0 ? (
+            <div className="flex flex-col gap-2 mb-3">
+              {/* Sort broadest → most specific */}
+              {[...subscribedRegions]
+                .sort((a, b) => {
+                  const order: Record<string, number> = { country: 0, state: 1, city: 2 };
+                  return (order[a.type] ?? 0) - (order[b.type] ?? 0);
+                })
+                .map((r) => (
+                  <div key={r.region} className="flex items-center gap-3">
+                    <Globe className="h-4 w-4 text-gray-400 shrink-0" />
+                    <span className="text-[14.5px] text-gray-900 font-medium">{r.region}</span>
+                    <span className="text-[11px] text-gray-400 uppercase tracking-wide">
+                      {r.type === "country" ? "Federal" : r.type === "state" ? "State" : "City"}
+                    </span>
+                  </div>
+                ))}
+            </div>
+          ) : (
+            <div className="flex items-center gap-3 mb-3">
+              <Globe className="h-4 w-4 text-gray-400 shrink-0" />
+              <span className="text-[14.5px] text-gray-900 font-medium">
+                {selectedRegion || "No region selected"}
+              </span>
+            </div>
+          )}
+          <div>
+            <p className="text-[11px] text-gray-400 mb-1.5">Change primary region</p>
             <Select value={selectedRegion} onValueChange={setSelectedRegion}>
               <SelectTrigger className="w-full sm:w-[240px] bg-white border border-gray-200 text-gray-900 text-[14px] rounded-xl min-h-[44px]">
                 <SelectValue placeholder="Select your region" />
