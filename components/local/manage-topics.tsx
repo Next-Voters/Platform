@@ -7,7 +7,7 @@ import { useSubscription } from "@/hooks/use-subscription";
 import { TierBadge } from "@/components/local/tier-badge";
 import { getUserTopics } from "@/server-actions/get-user-topics";
 import { updateUserTopics } from "@/server-actions/update-user-topics";
-import { getSupportedRegionsWithHierarchy, getUserRegion, getUserSubscriptionRegions, type SupportedRegion } from "@/server-actions/get-supported-regions";
+import { getSupportedRegionsWithHierarchy, getUserSubscriptionRegions, type SupportedRegion } from "@/server-actions/get-supported-regions";
 import { updateUserRegion } from "@/server-actions/update-user-region";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -21,15 +21,26 @@ export function ManageTopics({ onSaved }: { onSaved?: () => void } = {}) {
   const [topicsLoading, setTopicsLoading] = useState(true);
 
   const [regions, setRegions] = useState<SupportedRegion[]>([]);
-  const [selectedRegion, setSelectedRegion] = useState("");
+  const [selectedCountry, setSelectedCountry] = useState("");
+  const [selectedState, setSelectedState] = useState("");
+  const [selectedCity, setSelectedCity] = useState("");
   const [subscribedRegions, setSubscribedRegions] = useState<SupportedRegion[]>([]);
   const [regionError, setRegionError] = useState("");
 
   useEffect(() => {
     getSupportedRegionsWithHierarchy().then(setRegions);
-    getUserRegion().then((region) => { if (region) setSelectedRegion(region); });
     getUserSubscriptionRegions().then(setSubscribedRegions);
   }, []);
+
+  // Initialize individual selectors from subscribed regions
+  useEffect(() => {
+    const country = subscribedRegions.find((r) => r.type === "country");
+    const state = subscribedRegions.find((r) => r.type === "state");
+    const city = subscribedRegions.find((r) => r.type === "city");
+    if (country) setSelectedCountry(country.region);
+    if (state) setSelectedState(state.region);
+    if (city) setSelectedCity(city.region);
+  }, [subscribedRegions]);
 
   useEffect(() => {
     if (subLoading) return;
@@ -53,19 +64,18 @@ export function ManageTopics({ onSaved }: { onSaved?: () => void } = {}) {
   const handleSave = async () => {
     setRegionError("");
     // Prevent free users from saving a city region.
-    if (selectedRegion && !isPro) {
-      const match = regions.find((r) => r.region === selectedRegion);
-      if (match?.type === "city") {
-        setRegionError("City-level updates require a Pro subscription.");
-        return;
-      }
+    if (selectedCity && !isPro) {
+      setRegionError("City-level updates require a Pro subscription.");
+      return;
     }
+
+    const mostSpecificRegion = selectedCity || selectedState || selectedCountry;
 
     setSaving(true);
     setSavedMsg("");
     const [topicResult, regionResult] = await Promise.all([
       updateUserTopics(selected),
-      selectedRegion ? updateUserRegion(selectedRegion) : Promise.resolve({} as { error?: string }),
+      mostSpecificRegion ? updateUserRegion(mostSpecificRegion) : Promise.resolve({} as { error?: string }),
     ]);
     setSaving(false);
     const error = topicResult.error || regionResult.error;
@@ -100,60 +110,115 @@ export function ManageTopics({ onSaved }: { onSaved?: () => void } = {}) {
           Select up to 3 topics. We&rsquo;ll only send you updates related to your choices.
         </p>
 
-        {/* Region display */}
-        <div className="mb-8">
+        {/* Country selector */}
+        <div className="mb-6">
+          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">
+            Country
+          </p>
+          <div className="flex items-center gap-3 mb-2">
+            <Globe className="h-4 w-4 text-gray-400 shrink-0" />
+            <span className="text-[14.5px] text-gray-900 font-medium">
+              {selectedCountry || "No country selected"}
+            </span>
+            {selectedCountry && (
+              <span className="text-[11px] text-gray-400 uppercase tracking-wide">Federal</span>
+            )}
+          </div>
+          <Select
+            value={selectedCountry}
+            onValueChange={(val) => {
+              setSelectedCountry(val);
+              setSelectedState("");
+              setSelectedCity("");
+            }}
+          >
+            <SelectTrigger className="w-full sm:w-[240px] bg-white border border-gray-200 text-gray-900 text-[14px] rounded-xl min-h-[44px]">
+              <SelectValue placeholder="Select country" />
+            </SelectTrigger>
+            <SelectContent className="bg-white text-gray-900 border border-gray-200 z-[50]">
+              {regions
+                .filter((r) => r.type === "country")
+                .map((r) => (
+                  <SelectItem key={r.region} value={r.region} className="hover:bg-gray-100 focus:bg-gray-100">
+                    {r.region}
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Region (state) selector */}
+        <div className="mb-6">
           <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">
             Region
           </p>
-          {subscribedRegions.length > 0 ? (
-            <div className="flex flex-col gap-2 mb-3">
-              {/* Sort broadest → most specific */}
-              {[...subscribedRegions]
-                .sort((a, b) => {
-                  const order: Record<string, number> = { country: 0, state: 1, city: 2 };
-                  return (order[a.type] ?? 0) - (order[b.type] ?? 0);
-                })
-                .map((r) => (
-                  <div key={r.region} className="flex items-center gap-3">
-                    <Globe className="h-4 w-4 text-gray-400 shrink-0" />
-                    <span className="text-[14.5px] text-gray-900 font-medium">{r.region}</span>
-                    <span className="text-[11px] text-gray-400 uppercase tracking-wide">
-                      {r.type === "country" ? "Federal" : r.type === "state" ? "State" : "City"}
-                    </span>
-                  </div>
-                ))}
-            </div>
-          ) : (
-            <div className="flex items-center gap-3 mb-3">
-              <Globe className="h-4 w-4 text-gray-400 shrink-0" />
-              <span className="text-[14.5px] text-gray-900 font-medium">
-                {selectedRegion || "No region selected"}
-              </span>
-            </div>
-          )}
-          <div>
-            <p className="text-[11px] text-gray-400 mb-1.5">Change primary region</p>
-            <Select value={selectedRegion} onValueChange={setSelectedRegion}>
-              <SelectTrigger className="w-full sm:w-[240px] bg-white border border-gray-200 text-gray-900 text-[14px] rounded-xl min-h-[44px]">
-                <SelectValue placeholder="Select your region" />
-              </SelectTrigger>
-              <SelectContent className="bg-white text-gray-900 border border-gray-200 z-[50]">
-                {regions.map((r) => {
-                  const isCityLocked = r.type === "city" && !isPro;
-                  return (
-                    <SelectItem
-                      key={r.region}
-                      value={r.region}
-                      disabled={isCityLocked}
-                      className="hover:bg-gray-100 focus:bg-gray-100"
-                    >
-                      {r.region}{isCityLocked ? " (Pro)" : ""}
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
+          <div className="flex items-center gap-3 mb-2">
+            <Globe className="h-4 w-4 text-gray-400 shrink-0" />
+            <span className="text-[14.5px] text-gray-900 font-medium">
+              {selectedState || "No region selected"}
+            </span>
+            {selectedState && (
+              <span className="text-[11px] text-gray-400 uppercase tracking-wide">State</span>
+            )}
           </div>
+          <Select
+            value={selectedState}
+            onValueChange={(val) => {
+              setSelectedState(val);
+              setSelectedCity("");
+            }}
+            disabled={!selectedCountry}
+          >
+            <SelectTrigger className="w-full sm:w-[240px] bg-white border border-gray-200 text-gray-900 text-[14px] rounded-xl min-h-[44px]">
+              <SelectValue placeholder={selectedCountry ? "Select region" : "Select a country first"} />
+            </SelectTrigger>
+            <SelectContent className="bg-white text-gray-900 border border-gray-200 z-[50]">
+              {regions
+                .filter((r) => r.type === "state" && r.parent_region === selectedCountry)
+                .map((r) => (
+                  <SelectItem key={r.region} value={r.region} className="hover:bg-gray-100 focus:bg-gray-100">
+                    {r.region}
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* City selector */}
+        <div className="mb-8">
+          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">
+            City
+          </p>
+          <div className="flex items-center gap-3 mb-2">
+            <Globe className="h-4 w-4 text-gray-400 shrink-0" />
+            <span className="text-[14.5px] text-gray-900 font-medium">
+              {selectedCity || "No city selected"}
+            </span>
+            {selectedCity && (
+              <span className="text-[11px] text-gray-400 uppercase tracking-wide">City</span>
+            )}
+            {!isPro && (
+              <span className="text-[11px] text-brand font-semibold uppercase tracking-wide">Pro</span>
+            )}
+          </div>
+          <Select
+            value={selectedCity}
+            onValueChange={setSelectedCity}
+            disabled={!selectedState || !isPro}
+          >
+            <SelectTrigger className="w-full sm:w-[240px] bg-white border border-gray-200 text-gray-900 text-[14px] rounded-xl min-h-[44px]">
+              <SelectValue placeholder={!isPro ? "Requires Pro" : selectedState ? "Select city" : "Select a region first"} />
+            </SelectTrigger>
+            <SelectContent className="bg-white text-gray-900 border border-gray-200 z-[50]">
+              {regions
+                .filter((r) => r.type === "city" && r.parent_region === selectedState)
+                .map((r) => (
+                  <SelectItem key={r.region} value={r.region} className="hover:bg-gray-100 focus:bg-gray-100">
+                    {r.region}
+                  </SelectItem>
+                ))}
+            </SelectContent>
+          </Select>
           {regionError && (
             <p className="mt-2 text-[13px] text-red-600 font-medium">{regionError}</p>
           )}
