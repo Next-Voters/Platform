@@ -20,6 +20,9 @@ export async function POST(request: NextRequest) {
   const plan = body.plan === 'pro' ? 'pro' : 'free';
 
   const rawRegion = typeof body.region === 'string' ? body.region.trim() : '';
+  const rawRegions: string[] = Array.isArray(body.regions)
+    ? body.regions.filter((r: unknown): r is string => typeof r === 'string' && r.trim().length > 0).map((r: string) => r.trim())
+    : [];
   const rawTopics: string[] = Array.isArray(body.topics)
     ? body.topics.filter((t: unknown): t is string => typeof t === 'string' && t.trim().length > 0).map((t: string) => t.trim())
     : [];
@@ -94,6 +97,7 @@ export async function POST(request: NextRequest) {
     region: rawRegion,
     topics: rawTopics.join('|'),
   };
+  if (rawRegions.length > 0) metadata.regions = rawRegions.join('|');
   if (regionRequestMeta) metadata.region_request = regionRequestMeta;
   if (referralCode) metadata.referral_code = referralCode;
 
@@ -156,6 +160,33 @@ export async function POST(request: NextRequest) {
         await admin
           .from('subscription_topics')
           .insert(topicRows.map((row) => ({ subscription_id: user.email, topic_id: row.topic_id })));
+      }
+    }
+
+    // Save selected regions (multi-level). Filter out any city entries — city
+    // coverage requires Pro, and the primary-region check above only validates
+    // `rawRegion`. Without this filter a direct API call could sneak city
+    // entries into subscription_regions on the free tier.
+    if (rawRegions.length > 0) {
+      const { data: regionTypeRows } = await admin
+        .from('supported_regions')
+        .select('region, type')
+        .in('region', rawRegions);
+
+      const cityNames = new Set(
+        (regionTypeRows ?? []).filter((r) => r.type === 'city').map((r) => r.region),
+      );
+      const freeRegions = rawRegions.filter((r) => !cityNames.has(r));
+
+      if (freeRegions.length > 0) {
+        await admin
+          .from('subscription_regions')
+          .delete()
+          .eq('subscription_id', user.email);
+
+        await admin
+          .from('subscription_regions')
+          .insert(freeRegions.map((r) => ({ subscription_id: user.email, region: r })));
       }
     }
 

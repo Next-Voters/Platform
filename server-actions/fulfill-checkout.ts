@@ -45,6 +45,8 @@ export async function fulfillCheckout(sessionId: string): Promise<{ success: boo
 
   const metadata = session.metadata ?? {}
   const region = typeof metadata.region === "string" ? metadata.region.trim() : ""
+  const regionsRaw = typeof metadata.regions === "string" ? metadata.regions : ""
+  const regions = regionsRaw.split("|").map((r) => r.trim()).filter(Boolean)
   const topicsRaw = typeof metadata.topics === "string" ? metadata.topics : ""
   const topics = topicsRaw
     .split("|")
@@ -123,6 +125,19 @@ export async function fulfillCheckout(sessionId: string): Promise<{ success: boo
         .from("subscription_topics")
         .insert(topicRows.map((row) => ({ subscription_id: user.email, topic_id: row.topic_id })))
     }
+  }
+
+  // Regions are idempotent (delete + insert) — always run so they're saved
+  // even when the webhook created the row before fulfillCheckout reached this point.
+  if (regions.length > 0) {
+    await admin
+      .from("subscription_regions")
+      .delete()
+      .eq("subscription_id", user.email)
+
+    await admin
+      .from("subscription_regions")
+      .insert(regions.map((r) => ({ subscription_id: user.email, region: r })))
   }
 
   // Non-idempotent side effects — only run on first fulfillment to avoid

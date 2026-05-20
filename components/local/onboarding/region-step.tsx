@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { MapPin, Search } from "lucide-react";
+import { Check, MapPin, Search } from "lucide-react";
 import { type SupportedRegion } from "@/server-actions/get-supported-regions";
-import { OnboardingState } from "./types";
+import { resolveRegionHierarchy, type PhotonSuggestion } from "@/lib/resolve-region-hierarchy";
+import { OnboardingState, SelectedRegion } from "./types";
 
 interface Props {
   state: OnboardingState;
@@ -13,12 +14,11 @@ interface Props {
   onContinue: (regionWasSupported: boolean) => void;
 }
 
-interface PhotonSuggestion {
-  label: string;
-  name: string;
-  state: string | null;
-  country: string | null;
-}
+const TYPE_LABELS: Record<string, string> = {
+  country: "Federal-level political updates",
+  state: "State-level political updates",
+  city: "City-level political updates",
+};
 
 export function RegionStep({
   state,
@@ -35,8 +35,11 @@ export function RegionStep({
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [pickedSuggestion, setPickedSuggestion] = useState<PhotonSuggestion | null>(null);
+  const [hierarchy, setHierarchy] = useState<SupportedRegion[]>([]);
+  const [checked, setChecked] = useState<Set<string>>(new Set());
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Autocomplete fetch
   useEffect(() => {
     const trimmed = input.trim();
     if (trimmed.length < 2 || trimmed === pickedSuggestion?.name) {
@@ -72,6 +75,7 @@ export function RegionStep({
   const hasDropdown =
     suggestionsOpen && (suggestions.length > 0 || suggestionsLoading);
 
+  // Close dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (!containerRef.current?.contains(e.target as Node)) {
@@ -88,62 +92,90 @@ export function RegionStep({
     setSuggestions([]);
     setSuggestionsOpen(false);
     setError(null);
+
+    // Resolve hierarchy and show checkboxes
+    const resolved = resolveRegionHierarchy(s, s.name, supportedRegions);
+    setHierarchy(resolved);
+    // Auto-check all free (non-city) levels
+    const freeChecked = new Set(
+      resolved.filter((r) => r.type !== "city").map((r) => r.region),
+    );
+    setChecked(freeChecked);
+  };
+
+  const toggleRegion = (region: string) => {
+    setChecked((prev) => {
+      const next = new Set(prev);
+      if (next.has(region)) next.delete(region);
+      else next.add(region);
+      return next;
+    });
   };
 
   const handleContinue = () => {
     setError(null);
+
+    // If hierarchy is showing, save selections and proceed
+    if (hierarchy.length > 0) {
+      if (checked.size === 0) {
+        setError("Select at least one coverage level.");
+        return;
+      }
+
+      const selectedRegions: SelectedRegion[] = hierarchy
+        .filter((r) => checked.has(r.region))
+        .map((r) => ({ region: r.region, type: r.type }));
+
+      // Primary region = most specific selected
+      const typeOrder: Record<string, number> = { country: 0, state: 1, city: 2 };
+      const primary = [...selectedRegions].sort(
+        (a, b) => (typeOrder[b.type] ?? 0) - (typeOrder[a.type] ?? 0),
+      )[0];
+
+      updateState({
+        region: primary.region,
+        regionRequest: null,
+        regionType: primary.type,
+        selectedRegions,
+      });
+      onContinue(true);
+      return;
+    }
+
+    // No hierarchy showing — resolve from input
     const trimmed = input.trim();
     if (!trimmed) {
       setError("Please enter your city.");
       return;
     }
 
-    const ci = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
-
-    const cityMatch = supportedRegions.find(
-      (r) => r.type === "city" && ci(r.region, trimmed),
-    );
-    if (cityMatch) {
-      updateState({ region: cityMatch.region, regionRequest: null, regionType: "city" });
-      onContinue(true);
-      return;
+    // Try to resolve hierarchy from typed text
+    const resolved = resolveRegionHierarchy(pickedSuggestion, trimmed, supportedRegions);
+    if (resolved.length > 0) {
+      setHierarchy(resolved);
+      const freeChecked = new Set(
+        resolved.filter((r) => r.type !== "city").map((r) => r.region),
+      );
+      setChecked(freeChecked);
+      return; // Show hierarchy, don't navigate yet
     }
 
-    if (pickedSuggestion) {
-      if (pickedSuggestion.state) {
-        const stateMatch = supportedRegions.find(
-          (r) => r.type === "state" && ci(r.region, pickedSuggestion.state!),
-        );
-        if (stateMatch) {
-          updateState({ region: stateMatch.region, regionRequest: null, regionType: "state" });
-          onContinue(true);
-          return;
-        }
-      }
-
-      if (pickedSuggestion.country) {
-        const countryMatch = supportedRegions.find(
-          (r) => r.type === "country" && ci(r.region, pickedSuggestion.country!),
-        );
-        if (countryMatch) {
-          updateState({ region: countryMatch.region, regionRequest: null, regionType: "country" });
-          onContinue(true);
-          return;
-        }
-      }
-    }
-
-    const flatMatch = supportedRegions.find((r) => ci(r.region, trimmed));
-    if (flatMatch) {
-      updateState({ region: flatMatch.region, regionRequest: null, regionType: flatMatch.type ?? null });
-      onContinue(true);
-      return;
-    }
-
+    // No match — request flow
     const requestRegion = pickedSuggestion?.state ?? trimmed;
-    updateState({ region: "", regionRequest: { region: requestRegion } });
+    updateState({
+      region: "",
+      regionRequest: { region: requestRegion },
+      selectedRegions: [],
+      regionType: null,
+    });
     onContinue(false);
   };
+
+  const hasCity = hierarchy.some((r) => r.type === "city" && checked.has(r.region));
+  const canContinue =
+    hierarchy.length === 0
+      ? !regionsLoading && !!input.trim()
+      : checked.size > 0;
 
   return (
     <div>
@@ -176,6 +208,9 @@ export function RegionStep({
               setPickedSuggestion(null);
               setError(null);
               setSuggestionsOpen(true);
+              // Clear hierarchy when input changes
+              setHierarchy([]);
+              setChecked(new Set());
             }}
             onFocus={() => setSuggestionsOpen(true)}
             onKeyDown={(e) => {
@@ -225,10 +260,65 @@ export function RegionStep({
         )}
       </div>
 
-      {state.regionType === "city" && (
-        <p className="mt-2 text-[13px] text-gray-500">
-          City-level coverage is a Pro feature.
-        </p>
+      {/* Hierarchy checkboxes — appear after picking a suggestion */}
+      {hierarchy.length > 0 && (
+        <div className="mt-5">
+          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3">
+            Coverage levels
+          </p>
+          <div className="rounded-xl border border-gray-200 overflow-hidden">
+            {hierarchy.map((r, i) => {
+              const isCity = r.type === "city";
+              const isChecked = checked.has(r.region);
+              return (
+                <button
+                  key={r.region}
+                  type="button"
+                  onClick={() => toggleRegion(r.region)}
+                  className={[
+                    "w-full flex items-start gap-3 px-4 py-3.5 text-left transition-colors",
+                    i > 0 ? "border-t border-gray-200" : "",
+                    isChecked ? "bg-brand/[0.04]" : "bg-white hover:bg-gray-50",
+                  ].join(" ")}
+                >
+                  <div
+                    className={[
+                      "mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors",
+                      isChecked ? "border-brand bg-brand" : "border-gray-300",
+                    ].join(" ")}
+                  >
+                    {isChecked && <Check className="w-3.5 h-3.5 text-white" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[14.5px] font-semibold text-gray-900">
+                        {r.region}
+                      </span>
+                      {isCity && (
+                        <span className="text-[10.5px] font-bold text-brand bg-brand/10 px-1.5 py-0.5 rounded-full uppercase tracking-wide">
+                          Pro
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[12.5px] text-gray-500 mt-0.5">
+                      {TYPE_LABELS[r.type]}
+                    </p>
+                    {isCity && isChecked && (
+                      <p className="text-[12px] text-brand/80 mt-1">
+                        You&rsquo;ll choose your plan in the next step
+                      </p>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          {hasCity && (
+            <p className="mt-2.5 text-[12.5px] text-gray-500">
+              City-level coverage is a Pro feature. State and country are free.
+            </p>
+          )}
+        </div>
       )}
 
       {error && (
@@ -244,7 +334,7 @@ export function RegionStep({
       <button
         type="button"
         onClick={handleContinue}
-        disabled={regionsLoading || !input.trim()}
+        disabled={!canContinue}
         className="mt-8 w-full sm:w-auto sm:min-w-[240px] inline-flex items-center justify-center min-h-[48px] px-8 py-3 text-[15.5px] font-bold text-white bg-brand rounded-xl hover:bg-brand-hover transition-colors shadow-sm disabled:opacity-50"
       >
         {regionsLoading ? "Loading…" : "Continue"}

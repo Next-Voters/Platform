@@ -11,6 +11,7 @@ import {
   writePendingAction,
 } from "@/lib/pending-action";
 import { getSupportedRegionsWithHierarchy, type SupportedRegion } from "@/server-actions/get-supported-regions";
+import { resolveRegionHierarchy } from "@/lib/resolve-region-hierarchy";
 import { submitRegionWaitlist } from "@/server-actions/request-region";
 import { syncSubscriptionFromStripe } from "@/server-actions/sync-subscription";
 import { RegionStep } from "./region-step";
@@ -113,11 +114,17 @@ export function OnboardingWizard() {
       (r) => r.region.toLowerCase() === trimmed.toLowerCase(),
     );
     if (match) {
+      const hierarchy = resolveRegionHierarchy(null, match.region, supportedRegions);
+      // Auto-select all free (non-city) levels, matching the RegionStep behavior.
+      const selectedRegions = hierarchy
+        .filter((r) => r.type !== "city")
+        .map((r) => ({ region: r.region, type: r.type }));
       updateState({
         region: match.region,
         regionRequest: null,
         topics: urlTopics,
         regionType: match.type ?? null,
+        selectedRegions,
       });
       setMode("subscribe");
       // Jump to the furthest step the hydrated state unlocks.
@@ -225,6 +232,7 @@ export function OnboardingWizard() {
           type: "subscribe",
           plan,
           region: state.region,
+          regions: state.selectedRegions.map((r) => r.region),
           topics: state.topics,
           regionRequest: state.regionRequest,
           referralCode: referralCode || null,
@@ -259,6 +267,7 @@ export function OnboardingWizard() {
           body: JSON.stringify({
             plan,
             region: state.region,
+            regions: state.selectedRegions.map((r) => r.region),
             topics: state.topics,
             regionRequest: state.regionRequest,
             referralCode: referralCode || undefined,
@@ -430,6 +439,7 @@ export function OnboardingWizard() {
         onClose={() => setShowPaymentModal(false)}
         onSuccess={() => router.replace("/local")}
         region={state.region}
+        regions={state.selectedRegions.map((r) => r.region)}
         topics={state.topics}
         regionRequest={state.regionRequest}
         referralCode={referralCode || null}

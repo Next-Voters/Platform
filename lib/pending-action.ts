@@ -15,6 +15,7 @@ export type PendingAction =
       type: "subscribe";
       plan: "free" | "pro";
       region: string;
+      regions: string[];
       topics: string[];
       regionRequest: { region: string } | null;
       referralCode: string | null;
@@ -75,6 +76,7 @@ function isPendingAction(value: unknown): value is PendingAction {
     return (
       (v.plan === "free" || v.plan === "pro") &&
       typeof v.region === "string" &&
+      isStringArray(v.regions ?? []) &&
       isStringArray(v.topics) &&
       isRegionRequest(v.regionRequest) &&
       (v.referralCode === null || typeof v.referralCode === "string")

@@ -17,7 +17,7 @@ export function PlanStep({ state, isRedirecting, onCheckout }: Props) {
     if (!isRedirecting) setPending(null);
   }, [isRedirecting]);
 
-  const cityRequiresPro = state.regionType === "city";
+  const cityRequiresPro = state.selectedRegions.some((r) => r.type === "city");
 
   const handleClick = (plan: "free" | "pro") => {
     setPending(plan);

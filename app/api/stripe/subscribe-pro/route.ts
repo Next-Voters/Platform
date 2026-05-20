@@ -26,6 +26,9 @@ export async function POST(request: NextRequest) {
 
   // Onboarding data — present for new Pro signups, absent for upgrades (already saved in DB).
   const rawRegion = typeof body.region === 'string' ? body.region.trim() : '';
+  const rawRegions: string[] = Array.isArray(body.regions)
+    ? body.regions.filter((r: unknown): r is string => typeof r === 'string' && r.trim().length > 0).map((r: string) => r.trim())
+    : [];
   const rawTopics: string[] = Array.isArray(body.topics)
     ? body.topics.filter((t: unknown): t is string => typeof t === 'string' && t.trim().length > 0).map((t: string) => t.trim())
     : [];
@@ -109,6 +112,7 @@ export async function POST(request: NextRequest) {
       contact: user.email,
       plan: 'pro',
       ...(rawRegion && { region: rawRegion }),
+      ...(rawRegions.length > 0 && { regions: rawRegions.join('|') }),
       ...(rawTopics.length > 0 && { topics: rawTopics.join('|') }),
     };
     if (regionRequestMeta) metadata.region_request = regionRequestMeta;
@@ -171,6 +175,18 @@ export async function POST(request: NextRequest) {
             .from('subscription_topics')
             .insert(topicRows.map((row) => ({ subscription_id: user.email, topic_id: row.topic_id })));
         }
+      }
+
+      // Save selected regions (multi-level).
+      if (rawRegions.length > 0) {
+        await admin
+          .from('subscription_regions')
+          .delete()
+          .eq('subscription_id', user.email);
+
+        await admin
+          .from('subscription_regions')
+          .insert(rawRegions.map((r) => ({ subscription_id: user.email, region: r })));
       }
 
       // Notify admin if the user requested an unsupported region.

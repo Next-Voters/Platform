@@ -25,6 +25,7 @@ interface PaymentFormProps {
   onSuccess: () => void;
   onError: (msg: string) => void;
   region?: string;
+  regions?: string[];
   topics?: string[];
   regionRequest?: { region: string } | null;
   referralCode?: string | null;
@@ -34,6 +35,7 @@ function PaymentForm({
   onSuccess,
   onError,
   region,
+  regions,
   topics,
   regionRequest,
   referralCode,
@@ -80,6 +82,7 @@ function PaymentForm({
           body: JSON.stringify({
             paymentMethodId,
             region,
+            regions,
             topics,
             regionRequest,
             referralCode,
@@ -98,7 +101,7 @@ function PaymentForm({
         setSubmitting(false);
       }
     },
-    [stripe, elements, onSuccess, onError, region, topics, regionRequest, referralCode],
+    [stripe, elements, onSuccess, onError, region, regions, topics, regionRequest, referralCode],
   );
 
   return (
@@ -133,6 +136,7 @@ export interface PaymentModalProps {
   onClose: () => void;
   onSuccess: () => void;
   region?: string;
+  regions?: string[];
   topics?: string[];
   regionRequest?: { region: string } | null;
   referralCode?: string | null;
@@ -143,6 +147,7 @@ export function PaymentModal({
   onClose,
   onSuccess,
   region,
+  regions,
   topics,
   regionRequest,
   referralCode,
@@ -229,6 +234,7 @@ export function PaymentModal({
                 onSuccess={handleSuccess}
                 onError={setPaymentError}
                 region={region}
+                regions={regions}
                 topics={topics}
                 regionRequest={regionRequest}
                 referralCode={referralCode}
