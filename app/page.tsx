@@ -30,7 +30,31 @@ const Home = () => {
         {/* 1. Hero */}
         <NewsletterHero />
 
-        {/* 2. How It Works */}
+        {/* 2. Supporters strip */}
+        <section className="border-t border-gray-200/60">
+          <div className="max-w-[1100px] mx-auto px-6 py-8 md:py-10">
+            <p className="text-center text-[11px] tracking-[0.14em] uppercase text-gray-400 font-medium mb-6">
+              Backed by
+            </p>
+            <div className="flex flex-wrap justify-center items-center gap-12 md:gap-20 opacity-70">
+              <img
+                src="/google-for-nonprofits-logo.png"
+                alt="Google for Nonprofits"
+                className="h-24 md:h-28 object-contain grayscale hover:grayscale-0 transition"
+              />
+              <img
+                src="/lookup-live-logo.png"
+                alt="LOOK UP"
+                className="h-10 md:h-12 object-contain grayscale hover:grayscale-0 transition"
+              />
+            </div>
+            <p className="mt-5 text-center text-[12px] text-gray-400">
+              Readers in 12+ cities across North America
+            </p>
+          </div>
+        </section>
+
+        {/* 3. How It Works */}
         <section className="relative py-20 md:py-28 border-t border-gray-200/60">
           <div className="relative max-w-[1100px] mx-auto px-6">
             <div className="max-w-[680px] mx-auto text-center mb-12 md:mb-16">
@@ -80,30 +104,6 @@ const Home = () => {
                 <span>Write your brief</span>
               </div>
             </div>
-          </div>
-        </section>
-
-        {/* 3. Supporters strip */}
-        <section className="border-t border-gray-200/60">
-          <div className="max-w-[1100px] mx-auto px-6 py-8 md:py-10">
-            <p className="text-center text-[11px] tracking-[0.14em] uppercase text-gray-400 font-medium mb-6">
-              Backed by
-            </p>
-            <div className="flex flex-wrap justify-center items-center gap-12 md:gap-20 opacity-70">
-              <img
-                src="/google-for-nonprofits-logo.png"
-                alt="Google for Nonprofits"
-                className="h-24 md:h-28 object-contain grayscale hover:grayscale-0 transition"
-              />
-              <img
-                src="/lookup-live-logo.png"
-                alt="LOOK UP"
-                className="h-10 md:h-12 object-contain grayscale hover:grayscale-0 transition"
-              />
-            </div>
-            <p className="mt-5 text-center text-[12px] text-gray-400">
-              Readers in 12+ cities across North America
-            </p>
           </div>
         </section>
 
