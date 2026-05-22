@@ -152,15 +152,6 @@ export function NewsletterHero() {
 
   return (
     <section className="grain-overlay relative overflow-hidden bg-gradient-to-b from-rose-50/40 via-slate-50/60 to-white">
-      {/* Warm atmospheric wash with depth */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 -top-40 h-[720px]"
-        style={{
-          background:
-            "radial-gradient(60% 50% at 50% 30%, rgba(251, 191, 146, 0.10) 0%, rgba(148, 163, 184, 0.12) 40%, transparent 80%)",
-        }}
-      />
       {/* Brand red glow behind headline */}
       <div
         aria-hidden
@@ -168,15 +159,6 @@ export function NewsletterHero() {
         style={{
           background:
             "radial-gradient(ellipse at center, rgba(235, 34, 64, 0.09) 0%, rgba(235, 34, 64, 0) 65%)",
-        }}
-      />
-      {/* Secondary warm accent glow */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute right-[10%] top-[15%] h-[200px] w-[300px] rounded-full blur-3xl opacity-50"
-        style={{
-          background:
-            "radial-gradient(ellipse at center, rgba(251, 146, 60, 0.06) 0%, transparent 70%)",
         }}
       />
       {/* Faint cityscape silhouette - two layers slowly drift left in a seamless loop */}
@@ -237,16 +219,15 @@ export function NewsletterHero() {
           </span>
         </div>
 
-        <h1 className="text-center text-[44px] sm:text-[56px] md:text-[68px] font-bold tracking-tight text-gray-900 leading-[1.15] max-w-[900px] mx-auto">
-          Catch up with current legislation in{" "}
+        <h1 className="text-center text-[44px] sm:text-[56px] md:text-[68px] font-bold tracking-tight text-gray-900 leading-[1.08] max-w-[900px] mx-auto">
+          Know what your city council voted on{" "}
           <span className="inline-block pr-1 pb-1 italic font-extrabold bg-gradient-to-br from-red-500 via-red-500 to-rose-600 bg-clip-text text-transparent">
-            minutes
+            this week
           </span>
-          .
         </h1>
 
-        <p className="mt-6 text-center text-[15px] md:text-[17px] text-gray-500 leading-relaxed max-w-[720px] mx-auto">
-          Get a weekly, bias-free email summarizing new legislation in your region. Stay in the know with the topics you care about from immigration, economics and civil rights.
+        <p className="mt-6 text-center text-[15px] md:text-[17px] text-gray-500 leading-relaxed max-w-[620px] mx-auto">
+          A free weekly email with the votes, motions, and decisions that shape your neighborhood. Cited from official government sources. Nonpartisan.
         </p>
 
         <form
@@ -276,7 +257,7 @@ export function NewsletterHero() {
                 type="submit"
                 className="shrink-0 inline-flex items-center justify-center gap-2 rounded-full bg-red-500 hover:bg-red-600 active:bg-red-700 text-white text-[15px] sm:text-[16px] font-semibold px-6 sm:px-8 h-12 sm:h-14 transition-colors shadow-sm"
               >
-                <span>Sign me up</span>
+                <span>Get my first briefing</span>
                 <ArrowRight className="w-[18px] h-[18px] stroke-[2.5]" />
               </button>
             </div>
@@ -291,6 +272,22 @@ export function NewsletterHero() {
             </p>
           )}
         </form>
+
+        {/* Trust signals */}
+        <div className="mt-8 flex flex-wrap justify-center items-center gap-x-6 gap-y-2 text-[12.5px] text-gray-400 font-medium">
+          <span className="flex items-center gap-1.5">
+            <span className="w-1 h-1 rounded-full bg-gray-300" />
+            Cited from official sources
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-1 h-1 rounded-full bg-gray-300" />
+            Free forever
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-1 h-1 rounded-full bg-gray-300" />
+            Readers in 12+ cities
+          </span>
+        </div>
       </div>
     </section>
   );

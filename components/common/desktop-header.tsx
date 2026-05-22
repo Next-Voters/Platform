@@ -1,15 +1,34 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import headerItems from "@/data/header";
 import AuthButtons from "./components/auth-buttons";
 
 const DesktopHeader: React.FC = () => {
   const pathname = usePathname();
+  const isHome = pathname === "/";
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    if (!isHome) return;
+    const onScroll = () => setScrolled(window.scrollY > 50);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [isHome]);
+
+  const transparent = isHome && !scrolled;
 
   return (
-    <header className="w-full bg-page border-b border-gray-200/80 sticky top-0 z-40 backdrop-blur-sm">
+    <header
+      className={[
+        "w-full sticky top-0 z-40 transition-[background-color,border-color] duration-300",
+        transparent
+          ? "bg-transparent border-b border-transparent"
+          : "bg-page/80 backdrop-blur-sm border-b border-gray-200/80",
+      ].join(" ")}
+    >
       <div className="max-w-[1200px] mx-auto px-6 h-14 flex items-center justify-between gap-6">
         {/* Logo */}
         <a

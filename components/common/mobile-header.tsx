@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import headerItems from "@/data/header";
 import AuthButtons from "./components/auth-buttons";
@@ -9,10 +9,29 @@ import { Menu, X } from "lucide-react";
 const MobileHeader: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
+  const isHome = pathname === "/";
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    if (!isHome) return;
+    const onScroll = () => setScrolled(window.scrollY > 50);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [isHome]);
+
+  const transparent = isHome && !scrolled && !isOpen;
 
   return (
     <>
-      <header className="w-full bg-page border-b border-gray-200/80 sticky top-0 z-40 pt-[env(safe-area-inset-top)]">
+      <header
+        className={[
+          "w-full sticky top-0 z-40 pt-[env(safe-area-inset-top)] transition-[background-color,border-color] duration-300",
+          transparent
+            ? "bg-transparent border-b border-transparent"
+            : "bg-page/80 backdrop-blur-sm border-b border-gray-200/80",
+        ].join(" ")}
+      >
         <div className="px-4 h-14 flex justify-between items-center">
           <a href="/" className="text-[14px] font-bold text-white tracking-tight bg-gray-900 w-8 h-8 rounded-lg inline-flex items-center justify-center">
             NV

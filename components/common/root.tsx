@@ -35,7 +35,6 @@ const Root: FC<RootProps> = ({ children }) => {
 
   const pathname = usePathname();
   const showFooter =
-    pathname !== "/" &&
     !NO_FOOTER_PATTERNS.some((p) => pathname.startsWith(p));
   const showHeader = !NO_HEADER_PATTERNS.some((p) => pathname.startsWith(p));
 
