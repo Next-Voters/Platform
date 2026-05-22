@@ -12,7 +12,7 @@ const MobileHeader: React.FC = () => {
 
   return (
     <>
-      <header className="w-full sticky top-0 z-40 pt-[env(safe-area-inset-top)] bg-white/70 backdrop-blur-xl border-b border-gray-200/40">
+      <header className="w-full fixed top-0 left-0 right-0 z-40 pt-[env(safe-area-inset-top)] bg-background/70 backdrop-blur-xl border-b border-gray-200/40">
         <div className="px-4 h-[72px] flex justify-between items-center">
           <a
             href="/"
@@ -37,6 +37,9 @@ const MobileHeader: React.FC = () => {
         </div>
       </header>
 
+      {/* Spacer to offset fixed header */}
+      <div className="h-[72px]" />
+
       {/* Slide-down drawer overlay */}
       {isOpen && (
         <>
@@ -46,7 +49,7 @@ const MobileHeader: React.FC = () => {
             aria-hidden
           />
           <nav
-            className="fixed top-[72px] left-0 right-0 z-40 bg-white/70 backdrop-blur-xl border-b border-gray-200/40 shadow-lg"
+            className="fixed top-[72px] left-0 right-0 z-40 bg-background/70 backdrop-blur-xl border-b border-gray-200/40 shadow-lg"
             aria-label="Mobile navigation"
           >
             <ul className="flex flex-col py-2">
