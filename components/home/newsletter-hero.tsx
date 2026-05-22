@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { RegionAutocomplete } from "@/components/local/region-autocomplete";
@@ -21,7 +21,13 @@ function cityFromTimezone(): string | null {
   }
 }
 
-export function NewsletterHero() {
+export function NewsletterHero({
+  badge,
+  headline,
+  subcopy,
+  ctaLabel,
+  refCode,
+}: NewsletterHeroProps = {}) {
   const router = useRouter();
   const [city, setCity] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -61,7 +67,10 @@ export function NewsletterHero() {
       setError("Please enter your city.");
       return;
     }
-    router.push(`/subscription/onboarding?city=${encodeURIComponent(trimmed)}`);
+    const ref = refCode ? `&ref=${encodeURIComponent(refCode)}` : "";
+    router.push(
+      `/subscription/onboarding?city=${encodeURIComponent(trimmed)}${ref}`,
+    );
   };
 
   return (
@@ -71,7 +80,7 @@ export function NewsletterHero() {
         <div className="flex justify-center mb-8">
           <span className="inline-flex items-center gap-2 rounded-full bg-white/70 backdrop-blur-sm border border-gray-200/60 px-4 py-1.5 text-[12px] font-medium text-gray-500 shadow-sm">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Free weekly civic digest
+            {badge ?? "Free weekly civic digest"}
           </span>
         </div>
 
@@ -108,7 +117,7 @@ export function NewsletterHero() {
                 type="submit"
                 className="shrink-0 inline-flex items-center justify-center gap-2 rounded-full bg-red-500 hover:bg-red-600 active:bg-red-700 text-white text-[15px] sm:text-[16px] font-semibold px-6 sm:px-8 h-12 sm:h-14 transition-colors shadow-sm"
               >
-                <span>Get my first briefing</span>
+                <span>{ctaLabel ?? "Get my first briefing"}</span>
                 <ArrowRight className="w-[18px] h-[18px] stroke-[2.5]" />
               </button>
             </div>
