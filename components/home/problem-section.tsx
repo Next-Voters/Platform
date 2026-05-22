@@ -23,16 +23,16 @@ const stats = [
 
 export function ProblemSection() {
   return (
-    <section className="bg-red-50/80 py-20 md:py-28">
+    <section className="bg-gray-950 py-20 md:py-28">
       <div className="max-w-[1100px] mx-auto px-6">
         <div className="max-w-[600px] mb-12 md:mb-16">
           <p className="text-[11px] tracking-[0.14em] uppercase text-red-400 font-semibold mb-4">
             The problem
           </p>
-          <h2 className="text-[28px] md:text-[38px] font-bold text-gray-900 tracking-tight leading-[1.12]">
+          <h2 className="text-[28px] md:text-[38px] font-bold text-white tracking-tight leading-[1.12]">
             The civic information crisis is real.
           </h2>
-          <p className="mt-4 text-[15px] md:text-[17px] text-gray-600 leading-relaxed">
+          <p className="mt-4 text-[15px] md:text-[17px] text-gray-400 leading-relaxed">
             A generation is making decisions based on social media clips instead of
             official government records. The data is clear.
           </p>
@@ -42,15 +42,15 @@ export function ProblemSection() {
           {stats.map((s) => (
             <div
               key={s.number}
-              className="rounded-xl p-6 bg-white/60 border border-red-100"
+              className="rounded-xl p-6 bg-white/[0.04] border border-white/[0.08]"
             >
-              <div className="text-[48px] md:text-[56px] font-bold text-red-500 leading-none mb-3">
+              <div className="text-[48px] md:text-[56px] font-bold text-white leading-none mb-3">
                 {s.number}
               </div>
-              <p className="text-[14.5px] text-gray-700 leading-relaxed">
+              <p className="text-[14.5px] text-gray-400 leading-relaxed">
                 {s.text}
               </p>
-              <p className="mt-2 text-[11.5px] text-gray-400">
+              <p className="mt-2 text-[11.5px] text-gray-500">
                 {s.cite}
               </p>
             </div>
