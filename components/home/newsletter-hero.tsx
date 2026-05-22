@@ -1,9 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { RegionAutocomplete } from "@/components/local/region-autocomplete";
+
+export interface NewsletterHeroProps {
+  /** Pill text above the headline. */
+  badge?: ReactNode;
+  /** Main headline. Defaults to the homepage civic-digest headline. */
+  headline?: ReactNode;
+  /** Supporting line under the headline. */
+  subcopy?: ReactNode;
+  /** Submit-button label. */
+  ctaLabel?: string;
+  /** Referral code appended to the onboarding redirect (for attribution). */
+  refCode?: string;
+}
 
 const FALLBACK_PLACEHOLDER_CITY = "Vancouver";
 
@@ -96,7 +109,13 @@ function cityFromTimezone(): string | null {
   }
 }
 
-export function NewsletterHero() {
+export function NewsletterHero({
+  badge,
+  headline,
+  subcopy,
+  ctaLabel,
+  refCode,
+}: NewsletterHeroProps = {}) {
   const router = useRouter();
   const [city, setCity] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -147,7 +166,10 @@ export function NewsletterHero() {
       setError("Please enter your city.");
       return;
     }
-    router.push(`/subscription/onboarding?city=${encodeURIComponent(trimmed)}`);
+    const ref = refCode ? `&ref=${encodeURIComponent(refCode)}` : "";
+    router.push(
+      `/subscription/onboarding?city=${encodeURIComponent(trimmed)}${ref}`,
+    );
   };
 
   return (
@@ -215,19 +237,24 @@ export function NewsletterHero() {
         <div className="flex justify-center mb-6">
           <span className="inline-flex items-center gap-2 rounded-full bg-white/70 backdrop-blur-sm border border-gray-200/60 px-4 py-1.5 text-[12px] font-medium text-gray-500 shadow-sm">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            Free weekly civic digest
+            {badge ?? "Free weekly civic digest"}
           </span>
         </div>
 
         <h1 className="text-center text-[44px] sm:text-[56px] md:text-[68px] font-bold tracking-tight text-gray-900 leading-[1.08] max-w-[900px] mx-auto">
-          Know what your city council voted on{" "}
-          <span className="inline-block pr-1 pb-1 italic font-extrabold bg-gradient-to-br from-red-500 via-red-500 to-rose-600 bg-clip-text text-transparent">
-            this week
-          </span>
+          {headline ?? (
+            <>
+              Know what your city council voted on{" "}
+              <span className="inline-block pr-1 pb-1 italic font-extrabold bg-gradient-to-br from-red-500 via-red-500 to-rose-600 bg-clip-text text-transparent">
+                this week
+              </span>
+            </>
+          )}
         </h1>
 
         <p className="mt-6 text-center text-[15px] md:text-[17px] text-gray-500 leading-relaxed max-w-[620px] mx-auto">
-          A free weekly email with the votes, motions, and decisions that shape your neighborhood. Cited from official government sources. Nonpartisan.
+          {subcopy ??
+            "A free weekly email with the votes, motions, and decisions that shape your neighborhood. Cited from official government sources. Nonpartisan."}
         </p>
 
         <form
@@ -257,7 +284,7 @@ export function NewsletterHero() {
                 type="submit"
                 className="shrink-0 inline-flex items-center justify-center gap-2 rounded-full bg-red-500 hover:bg-red-600 active:bg-red-700 text-white text-[15px] sm:text-[16px] font-semibold px-6 sm:px-8 h-12 sm:h-14 transition-colors shadow-sm"
               >
-                <span>Get my first briefing</span>
+                <span>{ctaLabel ?? "Get my first briefing"}</span>
                 <ArrowRight className="w-[18px] h-[18px] stroke-[2.5]" />
               </button>
             </div>

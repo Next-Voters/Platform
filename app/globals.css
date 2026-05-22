@@ -227,7 +227,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .animate-city-drift-front,
-  .animate-city-drift-back {
+  .animate-city-drift-back,
+  .animate-float {
     animation: none;
   }
 }
