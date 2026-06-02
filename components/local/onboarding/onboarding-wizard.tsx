@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useSubscription } from "@/hooks/use-subscription";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   clearPendingAction,
@@ -41,6 +42,7 @@ export function OnboardingWizard() {
   const urlRef = searchParams.get("ref");
   const urlCity = searchParams.get("city");
   const { user } = useAuth();
+  const { refetch: refetchSubscription } = useSubscription();
   const errorParam = searchParams.get("error");
 
   const {
@@ -289,12 +291,18 @@ export function OnboardingWizard() {
             scrollToBottom();
             return;
           }
+          // Refresh the app-wide subscription cache before navigating. The
+          // provider only refetches on user-id change, so without this the
+          // /subscription redirect guard would see a stale hasSubscription
+          // and bounce the user back to onboarding.
+          await refetchSubscription();
           router.replace("/subscription");
           return;
         }
 
         const data = await res.json();
         if (data.success) {
+          await refetchSubscription();
           router.replace("/subscription");
           return;
         }
@@ -307,7 +315,7 @@ export function OnboardingWizard() {
         scrollToBottom();
       }
     },
-    [state, referralCode, user, setPendingPlan, router],
+    [state, referralCode, user, setPendingPlan, router, refetchSubscription],
   );
 
   const handleRegionContinue = useCallback(

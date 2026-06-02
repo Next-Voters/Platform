@@ -129,7 +129,14 @@ export async function POST(request: NextRequest) {
       contact: user.email,
       stripe_customer_id: stripeCustomerId,
       stripe_subscription_id: stripeSub.id,
-      stripe_status: stripeSub.status,
+      // The free tier is granted server-side with no payment required, so record
+      // it as active rather than echoing Stripe's raw status. A non-zero "basic"
+      // price returns `incomplete` (no payment method), which the subscription
+      // gate (`stripe_status !== "active"`) would reject — bouncing the user back
+      // to onboarding. This matches the webhook, which also writes 'active' for
+      // fulfilled subscriptions. Stripe webhooks remain the source of truth for
+      // any later status change (cancellation, downgrade).
+      stripe_status: 'active',
       ...(periodEnd && { stripe_period_end: new Date(periodEnd * 1000).toISOString() }),
       tier: 'free',
     };
