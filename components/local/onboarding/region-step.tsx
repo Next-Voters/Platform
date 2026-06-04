@@ -39,6 +39,25 @@ export function RegionStep({
   const [checked, setChecked] = useState<Set<string>>(new Set());
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Pre-populate hierarchy + checked when arriving with a pre-filled region
+  // (e.g. from the landing-page ?city= param). Without this the user would see
+  // the input filled but no coverage-level checkboxes until they re-pick.
+  useEffect(() => {
+    if (regionsLoading || supportedRegions.length === 0) return;
+    if (!state.region || hierarchy.length > 0) return;
+    const resolved = resolveRegionHierarchy(null, state.region, supportedRegions);
+    if (resolved.length === 0) return;
+    setHierarchy(resolved);
+    // Honor pre-selected regions from state; fall back to non-city defaults.
+    const preChecked = new Set(state.selectedRegions.map((r) => r.region));
+    setChecked(
+      preChecked.size > 0
+        ? preChecked
+        : new Set(resolved.filter((r) => r.type !== "city").map((r) => r.region)),
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [regionsLoading, supportedRegions]);
+
   // Autocomplete fetch
   useEffect(() => {
     const trimmed = input.trim();

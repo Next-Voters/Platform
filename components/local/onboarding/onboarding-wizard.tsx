@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Calendar, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useSubscription } from "@/hooks/use-subscription";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -66,6 +66,7 @@ export function OnboardingWizard() {
   );
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showEmailNotice, setShowEmailNotice] = useState(false);
   const [preAuthNotice, setPreAuthNotice] = useState<string | null>(null);
   const [autoKickoffLabel, setAutoKickoffLabel] = useState<string | null>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -93,13 +94,13 @@ export function OnboardingWizard() {
     }
   }, [urlRef, referralCode, setReferralCode]);
 
-  // Pre-fill region from `?city=` (e.g., from the landing-page hero or the
-  // /local → onboarding "Back to plan selection" path). Also accepts
-  // `?topics=` (comma-sep) so a user returning from a failed kickoff or from
-  // a Supabase cookie-delay redirect lands back on their furthest-completed
-  // step instead of step 1. Runs once after regions load so the
-  // supported-match check is valid. URL is stripped after hydration so a
-  // remount (auth flip, back-nav) can't re-fire this effect.
+  // Pre-fill region from `?city=` (e.g., from the landing-page hero). Also
+  // accepts `?topics=` (comma-sep) so previously chosen topics are preserved.
+  // Always lands on step 1 so the user can see and confirm their coverage-level
+  // checkboxes before continuing — RegionStep pre-populates the hierarchy from
+  // the hydrated state. Runs once after regions load so the supported-match
+  // check is valid. URL is stripped after hydration so a remount (auth flip,
+  // back-nav) can't re-fire this effect.
   useEffect(() => {
     if (regionsLoading || hydratedFromCityParamRef.current) return;
     if (!urlCity) return;
@@ -117,30 +118,20 @@ export function OnboardingWizard() {
     );
     if (match) {
       const hierarchy = resolveRegionHierarchy(null, match.region, supportedRegions);
-      // Auto-select all free (non-city) levels, matching the RegionStep behavior.
+      // Auto-select all free (non-city) levels as defaults; the user can check
+      // city on step 1 if they want Pro coverage.
       const selectedRegions = hierarchy
         .filter((r) => r.type !== "city")
         .map((r) => ({ region: r.region, type: r.type }));
-      // Primary region = most specific non-city selected, mirroring RegionStep's
-      // handleContinue logic so that a city input doesn't reach checkout as the
-      // primary region (which the free-plan endpoint rejects).
-      const typeOrder: Record<string, number> = { country: 0, state: 1, city: 2 };
-      const primaryRegion = selectedRegions.length > 0
-        ? [...selectedRegions].sort(
-            (a, b) => (typeOrder[b.type] ?? 0) - (typeOrder[a.type] ?? 0),
-          )[0]
-        : null;
       updateState({
-        region: primaryRegion?.region ?? match.region,
+        region: match.region,
         regionRequest: null,
         topics: urlTopics,
-        regionType: primaryRegion?.type ?? match.type ?? null,
+        regionType: match.type ?? null,
         selectedRegions,
       });
       setMode("subscribe");
-      // Jump to the furthest step the hydrated state unlocks.
-      if (urlTopics.length > 0) setStep(3);
-      else setStep(2);
+      setStep(1);
     } else {
       updateState({
         region: "",
@@ -148,7 +139,7 @@ export function OnboardingWizard() {
         topics: urlTopics,
       });
       setMode("request");
-      setStep(2);
+      setStep(1);
     }
 
     router.replace("/subscription/onboarding", { scroll: false });
@@ -337,10 +328,21 @@ export function OnboardingWizard() {
   );
 
   const handleSubscribeAdvance = useCallback(() => {
-    if (step < 3) setStep((step + 1) as OnboardingStep);
+    if (step === 2) {
+      // Show the weekly-email notice before the plan step so users know what
+      // to expect before they commit.
+      setShowEmailNotice(true);
+    } else if (step < 3) {
+      setStep((step + 1) as OnboardingStep);
+    }
   }, [step, setStep]);
 
   const handleRequestSubmitted = useCallback(() => {
+    setShowEmailNotice(true);
+  }, []);
+
+  const dismissEmailNotice = useCallback(() => {
+    setShowEmailNotice(false);
     setStep(3);
   }, [setStep]);
 
@@ -461,6 +463,37 @@ export function OnboardingWizard() {
         regionRequest={state.regionRequest}
         referralCode={referralCode || null}
       />
+
+      {showEmailNotice && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-5 animate-in fade-in duration-150"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="email-notice-title"
+        >
+          <div className="w-full max-w-[380px] bg-white rounded-2xl shadow-xl p-7 text-center">
+            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-brand/10 mx-auto mb-4">
+              <Calendar className="w-5 h-5 text-brand" aria-hidden="true" />
+            </div>
+            <p
+              id="email-notice-title"
+              className="text-[18px] font-bold text-gray-950 tracking-tight mb-2"
+            >
+              Weekly on Mondays
+            </p>
+            <p className="text-[14px] text-gray-500 leading-relaxed mb-6">
+              Your briefing lands in your inbox every Monday morning, covering the topics and regions you selected.
+            </p>
+            <button
+              type="button"
+              onClick={dismissEmailNotice}
+              className="w-full min-h-[48px] px-6 py-3 text-[15px] font-bold text-white bg-brand rounded-xl hover:bg-brand-hover transition-colors shadow-sm"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
 
       {(preAuthNotice || autoKickoffLabel) && (
         <div
