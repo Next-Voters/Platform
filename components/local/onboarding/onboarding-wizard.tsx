@@ -121,11 +121,20 @@ export function OnboardingWizard() {
       const selectedRegions = hierarchy
         .filter((r) => r.type !== "city")
         .map((r) => ({ region: r.region, type: r.type }));
+      // Primary region = most specific non-city selected, mirroring RegionStep's
+      // handleContinue logic so that a city input doesn't reach checkout as the
+      // primary region (which the free-plan endpoint rejects).
+      const typeOrder: Record<string, number> = { country: 0, state: 1, city: 2 };
+      const primaryRegion = selectedRegions.length > 0
+        ? [...selectedRegions].sort(
+            (a, b) => (typeOrder[b.type] ?? 0) - (typeOrder[a.type] ?? 0),
+          )[0]
+        : null;
       updateState({
-        region: match.region,
+        region: primaryRegion?.region ?? match.region,
         regionRequest: null,
         topics: urlTopics,
-        regionType: match.type ?? null,
+        regionType: primaryRegion?.type ?? match.type ?? null,
         selectedRegions,
       });
       setMode("subscribe");

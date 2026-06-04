@@ -93,7 +93,9 @@ export async function POST(request: NextRequest) {
         items: [{ id: currentItem.id, price: proPriceId }],
         default_payment_method: paymentMethodId,
         proration_behavior: 'create_prorations',
-        metadata: { contact: user.email, plan: 'pro' },
+        // Spread existing metadata so region/topics/referral_code set at signup
+        // are preserved in the Stripe audit trail after an upgrade.
+        metadata: { ...stripeSub.metadata, contact: user.email, plan: 'pro' },
       });
 
       // Write tier and period end immediately so refetch() sees the updated state.

@@ -24,10 +24,11 @@ const Chat = () => {
   const [message, setMessage] = useState('');
 
   const [chatHistory, setChatHistory] = useState<Message[]>([]);
-  
+  const [messageLoading, setMessageLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
   // boolean tags
   const hasAutoSent = useRef(false);
-  const messageLoading = useRef(false);
 
   const region = getPreference();
 
@@ -72,74 +73,79 @@ const Chat = () => {
 
         for (const line of lines) {
           if (line.startsWith('data: ')) {
+            // Isolate JSON parse errors so intentional throws (server error
+            // events) propagate up and trigger React Query's onError handler.
+            let data: { type: string; data?: AIAgentResponse; message?: string } | null = null;
             try {
               const jsonStr = line.slice(6);
               if (!jsonStr.trim()) continue;
-              
-              const data = JSON.parse(jsonStr);
-
-              if (data.type === 'party' && data.data) {
-                const partyData: AIAgentResponse = {
-                  partyName: data.data.partyName,
-                  partyStance: data.data.partyStance,
-                  supportingDetails: data.data.supportingDetails,
-                  citations: data.data.citations
-                };
-
-                // Update chat history with new party response
-                setChatHistory(prev => {
-                  const newHistory = [...prev];
-                  
-                  // Find or create the agent message
-                  if (agentMessageIndex === null) {
-                    // Find the last agent message (should be the one we just created in onMutate)
-                    const lastIndex = newHistory.length - 1;
-                    if (lastIndex >= 0 && newHistory[lastIndex]?.type === 'agent') {
-                      agentMessageIndex = lastIndex;
-                    } else {
-                      // Create new agent message
-                      newHistory.push({
-                        type: 'agent' as const,
-                        parties: []
-                      });
-                      agentMessageIndex = newHistory.length - 1;
-                    }
-                  }
-
-                  const agentMessage = newHistory[agentMessageIndex];
-                  if (agentMessage?.type === 'agent') {
-                    // Check if party already exists
-                    const existingIndex = agentMessage.parties.findIndex(
-                      p => p.partyName === partyData.partyName
-                    );
-
-                    if (existingIndex >= 0) {
-                      // Update existing party
-                      newHistory[agentMessageIndex] = {
-                        type: 'agent' as const,
-                        parties: agentMessage.parties.map((p, idx) =>
-                          idx === existingIndex ? partyData : p
-                        )
-                      };
-                    } else {
-                      // Add new party
-                      newHistory[agentMessageIndex] = {
-                        type: 'agent' as const,
-                        parties: [...agentMessage.parties, partyData]
-                      };
-                    }
-                  }
-
-                  return newHistory;
-                });
-              } else if (data.type === 'done') {
-                // Stream completed
-                return { done: true };
-              } else if (data.type === 'error') {
-                throw new Error(data.message || 'Unknown error occurred');
-              }
+              data = JSON.parse(jsonStr);
             } catch (e) {
               console.error('Error parsing SSE message:', e, 'Line:', line);
+              continue;
+            }
+
+            if (!data) continue;
+
+            if (data.type === 'party' && data.data) {
+              const partyData: AIAgentResponse = {
+                partyName: data.data.partyName,
+                partyStance: data.data.partyStance,
+                supportingDetails: data.data.supportingDetails,
+                citations: data.data.citations
+              };
+
+              // Update chat history with new party response
+              setChatHistory(prev => {
+                const newHistory = [...prev];
+
+                // Find or create the agent message
+                if (agentMessageIndex === null) {
+                  // Find the last agent message (should be the one we just created in onMutate)
+                  const lastIndex = newHistory.length - 1;
+                  if (lastIndex >= 0 && newHistory[lastIndex]?.type === 'agent') {
+                    agentMessageIndex = lastIndex;
+                  } else {
+                    // Create new agent message
+                    newHistory.push({
+                      type: 'agent' as const,
+                      parties: []
+                    });
+                    agentMessageIndex = newHistory.length - 1;
+                  }
+                }
+
+                const agentMessage = newHistory[agentMessageIndex];
+                if (agentMessage?.type === 'agent') {
+                  // Check if party already exists
+                  const existingIndex = agentMessage.parties.findIndex(
+                    p => p.partyName === partyData.partyName
+                  );
+
+                  if (existingIndex >= 0) {
+                    // Update existing party
+                    newHistory[agentMessageIndex] = {
+                      type: 'agent' as const,
+                      parties: agentMessage.parties.map((p, idx) =>
+                        idx === existingIndex ? partyData : p
+                      )
+                    };
+                  } else {
+                    // Add new party
+                    newHistory[agentMessageIndex] = {
+                      type: 'agent' as const,
+                      parties: [...agentMessage.parties, partyData]
+                    };
+                  }
+                }
+
+                return newHistory;
+              });
+            } else if (data.type === 'done') {
+              // Stream completed
+              return { done: true };
+            } else if (data.type === 'error') {
+              throw new Error(data.message || 'Unknown error occurred');
             }
           }
         }
@@ -149,7 +155,7 @@ const Chat = () => {
     },
     onMutate: (message) => {
       // Optimistically update the UI
-      messageLoading.current = true;
+      setMessageLoading(true);
       setChatHistory(prev => [
         ...prev,
         {
@@ -166,7 +172,7 @@ const Chat = () => {
       setMessage('');
     },
     onSettled: () => {
-      messageLoading.current = false;
+      setMessageLoading(false);
     },
     onError: (error) => {
       console.error('Error sending message:', error);
@@ -218,6 +224,10 @@ const Chat = () => {
     }
   }, [authLoading, user, initialMessage, sendMessage]);
 
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatHistory]);
+
   if (authLoading || !user) {
     return (
       <div className="w-full min-h-screen bg-page flex items-center justify-center">
@@ -240,13 +250,14 @@ const Chat = () => {
                   isFromMe={msg.type === "reg"}
                 />
             ))}
-            {messageLoading.current && (
+            {messageLoading && (
               <LoadingMessageBubble />
             )}
             </>
           ) : (
             <NoChatScreen onSuggestionClick={(q) => { setMessage(q); sendMessage(q); }} />
           )}
+          <div ref={messagesEndRef} />
         </div>
       </div>
 
