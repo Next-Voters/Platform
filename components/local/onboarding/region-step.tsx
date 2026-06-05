@@ -55,8 +55,7 @@ export function RegionStep({
         ? preChecked
         : new Set(resolved.filter((r) => r.type !== "city").map((r) => r.region)),
     );
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [regionsLoading, supportedRegions]);
+  }, [regionsLoading, supportedRegions, state.region, state.selectedRegions]);
 
   // Autocomplete fetch
   useEffect(() => {
