@@ -7,7 +7,7 @@
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-nextvoters.com-2F80ED)](https://nextvoters.com)
 [![License](https://img.shields.io/badge/License-MIT-00BFFF)](LICENSE-CODE)
 
-**Nonpartisan, AI-powered civic education for the next generation of voters.**
+**Non-partisan, AI-powered civic education for the next generation of voters.**
 
 Next Voters helps young citizens cut through political misinformation by delivering fact-based, citation-backed policy analysis across multiple political perspectives.
 
